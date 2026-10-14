@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Brand Library Audit Studio</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+:root{--drw:min(900px,62vw);--blue:#0b41cd;--navy:#022366;--lblue:#1482fa;--xlblue:#bde3ff;--g1:#544f4f;--g2:#706b69;--g3:#c2bab5;--g4:#dbd6d1;--g5:#f5f5f2;--n4:#fff7f5;--sr:#cc0033;--sy:#ffc414;--sg:#007c6b;--press:#6083de;--dis:#ebe8e5;--disx:#b3adaa}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--g5);color:#000;font:14px/1.5 "Roche Sans","Helvetica Neue",Helvetica,Arial,sans-serif;display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+a{color:var(--blue)}:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+aside{background:#fff;border-right:1px solid var(--g4);padding:24px 20px;position:sticky;top:0;height:100vh;overflow:auto}
+.logo b{display:block;font-size:20px;font-weight:600;color:var(--blue)}.logo span{font-size:12px;color:var(--g2)}.logo{padding-bottom:20px}
+nav button{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--g4);color:#000;padding:8px 2px;cursor:pointer;font:inherit}
+nav button:hover{color:var(--blue)}nav button.on{color:var(--blue);font-weight:600;border-bottom-color:var(--blue)}nav button:disabled{color:var(--disx);cursor:not-allowed;border-bottom-color:var(--g5)}
+.navg{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--g2);margin:18px 2px 2px}
+.navhint{font-size:12px;color:var(--g2);margin:14px 2px 0}
+main{min-width:0}
+header{display:flex;gap:10px 14px;align-items:center;padding:12px 32px;background:#fff;border-bottom:1px solid var(--g4);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+#chips{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.chip{display:inline-flex;align-items:center;height:24px;padding:0 10px;border:1px solid var(--blue);background:#fff;color:var(--blue);cursor:pointer;font-size:12px;font-weight:500;border-radius:2px;white-space:nowrap}
+.chip:hover{border-color:var(--navy);color:var(--navy)}.chip.on{background:var(--blue);color:#fff}.chip.on:hover{background:var(--navy);border-color:var(--navy);color:#fff}
+#asof{color:var(--g2);font-size:12px}#scope{flex-basis:100%;display:flex;gap:6px;align-items:center;flex-wrap:wrap}#scope:empty{display:none}#scope select{max-width:240px}
+section{padding:28px 32px 60px}
+.ph{margin:0 0 22px}.ph h1{margin:0 0 4px;font-size:40px;line-height:1.15;font-weight:300}.ph p{margin:0;color:var(--g1);max-width:760px}
+.card{background:#fff;border:1px solid var(--g4);border-radius:8px;padding:20px;margin-bottom:16px;min-width:0}
+.card h2,.card h3{margin:0 0 4px;font-size:16px;font-weight:500}.mut{color:var(--g2);font-size:12px;margin:0 0 8px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:1100px){.g2{grid-template-columns:1fr}}@media(max-width:900px){body{grid-template-columns:1fr}aside{position:static;height:auto}}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
+.kpi{position:relative;background:#fff;border:1px solid var(--g4);border-radius:8px;padding:16px}
+.kpi .l{color:var(--g2);font-size:12px;text-transform:uppercase;letter-spacing:.04em}.kpi .v{font-size:32px;font-weight:300;margin:4px 0;line-height:1.15}.kpi .s{font-size:12px;color:var(--g2)}
+.kpi.r .l::before,.kpi.o .l::before,.kpi.g .l::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.kpi.r .l::before{background:var(--sr)}.kpi.o .l::before{background:var(--sy)}.kpi.g .l::before{background:var(--sg)}
+.kpi.click{cursor:pointer}.kpi.click:hover{border-color:var(--blue);box-shadow:0 2px 10px rgba(11,65,205,.18)}
+.kpi.click::after{content:'View list ›';position:absolute;top:10px;right:12px;font-size:11px;color:var(--blue);opacity:0}.kpi.click:hover::after{opacity:1}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{position:sticky;top:0;background:#fff;text-align:left;color:var(--g1);font-weight:600;cursor:pointer;padding:8px;border-bottom:1px solid var(--g3);white-space:nowrap}th:hover{color:var(--blue)}
+td{padding:7px 8px;border-bottom:1px solid var(--g5);vertical-align:top;max-width:380px;overflow:hidden;text-overflow:ellipsis}
+.clip{display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-width:150px;max-width:260px;white-space:normal}.none{color:var(--disx)}
+.clk tr[data-i]:hover{background:var(--n4);cursor:pointer}.num{text-align:right}.tw{max-height:560px;overflow:auto;border:1px solid var(--g4);border-radius:4px}
+.b{display:inline-block;padding:1px 7px;border-radius:2px;font-size:11px;margin:1px 2px 1px 0;white-space:nowrap}
+.b.r{background:var(--sr);color:#fff}.b.o{background:var(--sy);color:#000}.b.m{background:var(--xlblue);color:var(--navy)}.b.i{background:var(--g4);color:var(--g1)}.b.g{background:var(--sg);color:#fff}
+.hp{display:inline-block;min-width:30px;text-align:center;padding:1px 8px;border-radius:2px;font-size:12px}.hp.g{background:var(--sg);color:#fff}.hp.y{background:var(--sy);color:#000}.hp.r{background:var(--sr);color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:32px;padding:0 14px;background:transparent;color:var(--blue);border:1px solid var(--blue);border-radius:2px;font:inherit;font-size:13px;font-weight:500;line-height:1;cursor:pointer;white-space:nowrap}
+.btn:hover{color:var(--navy);border-color:var(--navy)}.btn:active{color:var(--press);border-color:var(--press)}
+.btn.pri{background:var(--blue);color:#fff}.btn.pri:hover{background:var(--navy);border-color:var(--navy);color:#fff}.btn.pri:active{background:var(--press);border-color:var(--press)}
+.btn.s{height:24px;padding:0 10px;font-size:12px}.btn.l{height:40px;padding:0 20px;font-size:14px}
+.btn:disabled{background:transparent;border-color:var(--g3);color:var(--disx);cursor:not-allowed}.btn.pri:disabled{background:var(--dis);border-color:var(--dis)}
+input,select,textarea{background:#fff;color:#000;border:1px solid var(--g3);border-radius:2px;padding:0 10px;font:inherit;font-size:13px;height:32px}
+textarea{height:auto;padding:8px 10px;width:100%}input:focus,select:focus,textarea:focus{outline:2px solid var(--navy);outline-offset:1px;border-color:var(--blue)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.drop{border:1px dashed var(--g3);border-radius:8px;padding:34px;text-align:center;color:var(--g2);background:#fff}.drop.hv{border-color:var(--blue);background:var(--xlblue)}
+.ins{display:flex;flex-direction:column;gap:6px}.ins h3{font-size:15px}.ins p{margin:0;color:var(--g1)}
+.insh{display:flex;align-items:center;font-size:16px;font-weight:500;margin:22px 0 10px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;background:var(--lblue)}.dot.high{background:var(--sr)}.dot.med{background:var(--sy)}
+.thr{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px}.thr label,label.fl{display:flex;flex-direction:column;gap:4px;color:var(--g2);font-size:12px}
+.sign{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px}.sign div{border-top:1px solid var(--g1);padding-top:6px;margin-top:40px;font-size:12px;color:var(--g2)}
+.subnav{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}.tip{background:var(--xlblue);color:var(--navy);border-radius:4px;padding:9px 14px;font-size:12.5px;margin:0 0 14px}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:var(--drw);max-width:100vw;background:#fff;border-left:1px solid var(--g4);box-shadow:-8px 0 24px rgba(0,0,0,.12);z-index:20;display:flex;flex-direction:column;padding:20px;overflow:hidden}
+.drawer[hidden]{display:none}.dr-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}.dr-h h3{margin:0;font-size:18px;font-weight:500}
+#dr_tb{flex:1;overflow:auto;min-height:0}#dr_tb .tw{max-height:calc(100vh - 230px)}
+body.dr-open main{margin-right:var(--drw)}@media(max-width:1100px){body.dr-open main{margin-right:0}}
+@media print{aside,header,#drawer,.noprint{display:none!important}body{display:block;background:#fff}section{padding:0}.card,.kpi{break-inside:avoid}.tw{max-height:none!important;overflow:visible!important}}
+</style></head>
+<body>
+<aside><div class="logo"><b>Brand Library</b><span>Audit Studio · audit &amp; governance reports</span></div><nav id="nav"></nav></aside>
+<main><header><div id="chips"></div><div id="stat"></div><div id="asof"></div><div id="scope"></div></header><section id="view"></section></main>
+<div id="drawer" class="drawer" hidden>
+ <div class="dr-h"><div><h3 id="dr_t"></h3><p class="mut" id="dr_s"></p></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn s" id="dr_back" data-dr-back hidden>← Back</button><button class="btn s" data-dr-close>✕ Close</button></div></div>
+ <div class="bar"><input id="dr_q" placeholder="Filter this list…" style="flex:1;min-width:180px"><button class="btn pri" id="dr_ex" data-dr-explore>Open in Asset explorer →</button></div>
+ <div id="dr_tb"></div>
+</div>
+<script>
+(()=>{
+/* helpers */
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtN=n=>Math.round(n).toLocaleString('en-US');
+const fmtB=b=>{if(b<1024)return Math.round(b)+' B';const u=['KB','MB','GB','TB'];let i=-1;do{b/=1024;i++}while(b>=1024&&i<3);return b.toFixed(b<10?2:1)+' '+u[i]};
+const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
+const pct=(x,t)=>t?+(100*x/t).toFixed(1):0;
+const P=(x,t)=>(t?100*x/t:0).toFixed(1)+'%';
+const m1=v=>Math.round(v*10)/10;
+const rate=(a,f)=>pct(a.filter(f).length,a.length);
+const avgC=A=>A.length?100*sum(A,a=>a.meta)/A.length:0;
+const cnt=(arr,f)=>{const m=new Map();for(const x of arr){const k=f(x);if(k==null)continue;m.set(k,(m.get(k)||0)+1)}return m};
+const topN=(m,n)=>[...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,n);
+const fmtD=d=>d?d.toISOString().slice(0,10):'';
+const pd=s=>{if(!s)return null;const d=new Date(s.replace(' ','T')+'Z');return isNaN(d)?null:d};
+const splitList=(s,re)=>s?s.split(re).map(x=>x.trim()).filter(Boolean):[];
+const short=(s,n=60)=>s.length>n?s.slice(0,n-1)+'…':s;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const nk=s=>s.toLowerCase().replace(/[\s_\-.&]+/g,'').replace(/s$/,'');
+const vcl=ks=>{const m=new Map();for(const t of ks){const k=nk(t);if(!k)continue;(m.get(k)||m.set(k,[]).get(k)).push(t)}return[...m.values()].filter(v=>v.length>1)};
+
+/* Roche colours */
+const C={blue:'#0b41cd',navy:'#022366',lblue:'#1482fa',xlblue:'#bde3ff',g1:'#544f4f',g2:'#706b69',g3:'#c2bab5',g4:'#dbd6d1',g5:'#f5f5f2',sr:'#cc0033',sy:'#ffc414',sg:'#007c6b',orange:'#ff7d29',purple:'#e085fc',xdpurple:'#7d0096',dpurple:'#bc36f0',lorange:'#ffbd69',dorange:'#ed4a0d',xdorange:'#b22b0d'};
+const FONT='"Roche Sans","Helvetica Neue",Helvetica,Arial,sans-serif',TXT=C.g1;
+const PAL=[C.blue,C.lblue,C.navy,C.orange,C.xdpurple,C.purple,C.g2,C.lorange,C.dpurple,C.xlblue,C.dorange,C.g3];
+const DARK=[C.blue,C.navy,C.xdpurple,C.lblue,C.g2,C.xdorange,C.g1,C.dpurple];
+const hcls=v=>v>=80?'g':v>=50?'y':'r',hcol=v=>v>=80?C.sg:v>=50?C.sy:C.sr,kc=v=>({g:'g',y:'o',r:'r'})[hcls(v)];
+const hb=v=>`<b class="hp ${hcls(v)}">${v}</b>`;
+const bdg=(arr,cls)=>arr.map(x=>`<span class="b ${cls}">${esc(x)}</span>`).join('');
+const med=a=>{if(!a.length)return 0;const s=a.slice().sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2};
+
+/* config */
+const STD=new Set('id,apiid,externalid,title,downloadurl,filesizeinbytes,fileextension,description,alternativetext,creator,createdat,createdby,modifiedat,modifier,expiresat,folderpath,workflowstatus,copyrightcreator,copyrightstatus,copyrightnotice,licensesapplied,licensedescriptions,collections,attachments,relatedassets,tags'.split(','));
+const GUESS={RPCJu5ur:'Videos',KKNe3jQu:'Icons',i4zzxa2L:'Illustrations',sGtHc9kG:'Animated Icons',eceMTYQJ:'Animated Illustrations',nUM6jAWp:'Stock Photography',ourodYXy:'Presentation Kit',stKYfXUo:'Patient & HCP',DBJ4Sayx:'Logos',nLQV5gAs:'Photography'};
+const BAD=/\b(old|test|temp|tmp|copy|backup|archive|archiv|archived|do not use|not released|delete|deleted|to be deleted|deprecated|unused|misc|miscellaneous|new folder|untitled|draft|wip|obsolete|todo|tbd)\b/i;
+const CLEANST=/delete|on hold|reject|obsolete|archiv|expired|withdrawn|do not/i;
+const GENERIC=/^(roche[_\- ]?)?\d{3,}$|^(img|dsc|dscn|adobestock|shutterstock|istockphoto|getty|image|untitled|screenshot|screen shot|copy of|new)[_\- ]?\(?\d*\)?$/i;
+const SYS=/system|frontify|noreply|migrat/i;
+const CLEAN=['badStatus','expired','badFolder','dupe'];
+const FLAGS={noBoth:['No tags AND no description','r'],noDesc:['No description','m'],noAlt:['No alt text','m'],noTags:['No tags','m'],noColl:['In no collection','i'],badStatus:['Cleanup status','r'],expired:['Expired','r'],expSoon:['Expires ≤90d','o'],badFolder:['Folder naming smell','o'],dupe:['Possible duplicate','o'],genTitle:['Generic title','i'],stale:['Stale','i'],noFolder:['No folder','o'],noCopy:['No copyright notice','m'],big:['Very large file','i'],sys:['Modified by system','i']};
+const ISS={deep:['Deep nesting','Flatten hierarchy'],naming:['Naming smell (old/test/temp…)','Rename or archive'],spacing:['Stray whitespace in name','Rename'],nearDup:['Near-duplicate sibling','Merge with sibling'],tiny:['Tiny folder','Merge into parent/sibling'],passThrough:['Pass-through (1 subfolder, no files)','Flatten'],oversized:['Oversized folder','Split into subfolders'],stale:['Stale (no recent changes)','Review for archive'],lowMeta:['Low metadata (<50%)','Enrich metadata'],cleanupAssets:['>20% assets in cleanup status','Review workflow status']};
+const TABS=[['load','Load data'],['#','Audit'],['overview','Overview'],['insights','Nuggets'],['structure','Structure map'],['folders','Folder audit'],['meta','Metadata quality'],['life','Lifecycle & rights'],['dups','Duplicates & clutter'],['tags','Tags & collections'],['people','People & activity'],
+ ['#','Governance'],['naming','Naming compliance'],['taxo','Taxonomy conformance'],['rights','Rights & licence risk'],['rot','ROT analysis'],['find','Findability score'],['aging','Workflow ageing'],['related','Related-asset coverage'],['audit','Audit pack & backlog'],['#','Tools'],['explorer','Asset explorer']];
+const TD={load:['Load data','Drop in the library exports, name each library, then set the audit thresholds and governance rules.'],overview:['Overview','Size, structure, file types and overall health of the brand library.'],insights:['Nuggets','Automatically detected findings, ranked by severity.'],structure:['Structure map','Explore the folder hierarchy by asset count or storage.'],folders:['Folder audit','Folder health scores, issues and a clean-up worklist.'],meta:['Metadata quality','How complete descriptions, tags, alt text and rights information are.'],life:['Lifecycle & rights','Workflow status, expiry, copyright and licences.'],dups:['Duplicates & clutter','Probable duplicates, generic titles, file sizes and the largest files.'],tags:['Tags & collections','Tag hygiene and collection usage.'],people:['People & activity','Who creates and modifies assets, and when.'],explorer:['Asset explorer','Search, filter and inspect assets and folders.'],
+ naming:['Naming compliance','Which asset and folder names break common naming rules.'],taxo:['Taxonomy conformance','Are controlled fields and tags filled with consistent, expected values?'],rights:['Rights & licence risk','Risk register for expiry, licences and copyright.'],rot:['ROT analysis','Redundant, Obsolete and Trivial assets, with a recommendation per folder.'],find:['Findability score','How easily each asset can be found by search (0–100).'],aging:['Workflow ageing','How long assets have waited outside the Approved status.'],related:['Related-asset coverage','How well assets are linked to related assets and source files.'],audit:['Audit pack & backlog','Scorecard, prioritised action backlog and exports for sign-off.']};
+/* governance rules */
+const FINAL=/^(approved|published|final)/i,BADCH=/[\\/:*?"<>|#%^\[\]{}~`;=]/;
+const NMR={gen:['Generic or auto-generated title',a=>a.gen],ver:['Version or draft word in title (final, copy, old, v2…)',a=>/\b(final|copy|kopie|old|draft|backup|temp|tmp|v\d+)\b|\(\d+\)$/i.test(a.title)],chr:['Characters that break file names or URLs',a=>BADCH.test(a.title)],spc:['Double spaces in title',a=>/\s{2,}/.test(a.title)],ext:['File extension inside title',a=>/\.\w{2,4}$/.test(a.title)],len:['Title very short (<3) or long (>80)',a=>a.title.length<3||a.title.length>80],cap:['ALL CAPS title',a=>/[A-Z]{6,}/.test(a.title)&&a.title===a.title.toUpperCase()],sep:['Mixed spaces and underscores',a=>/_/.test(a.title)&&/ /.test(a.title)],pat:['Does not match your naming pattern',a=>S.re?!S.re.test(a.title):false]};
+const NMF={smell:['Name has old / test / temp / archive…',n=>BAD.test(n.name)],spc:['Stray or double spaces in name',n=>n.name!==n.name.trim()||/\s{2,}/.test(n.name)],chr:['Characters that break paths or URLs',n=>BADCH.test(n.name)],dup:['Near-duplicate sibling folder',n=>!!n.nearDup]};
+const RK={exp:['Expired','h',a=>a.expired],expA:['Expired but still Approved','h',a=>a.ok&&a.expired],soon:['Expires within 90 days','m',a=>a.expSoon],lic:['Licensed, no expiry date','m',a=>!!a.license&&!a.expires],cop:['No copyright notice','m',a=>!a.copyNotice],cst:['No copyright status','m',a=>!a.copyStatus],res:['Licence has usage restrictions','l',a=>a.restr]};
+const RL=['None','Low','Medium','High'],RLC=['i','m','o','r'],ROTN={R:'Redundant',O:'Obsolete',T:'Trivial'};
+const FC=[['Title quality',20,a=>!a.gen&&a.title.length>=3?20:0],['Tags',30,a=>a.tags.length>=3?30:a.tags.length?15:0],['Description',25,a=>a.desc.length>=30?25:a.desc?12:0],['Alt text',10,a=>a.alt?10:0],['Collection',10,a=>a.collections.length?10:0],['Filed in a folder',5,a=>a.folder?5:0]];
+
+/* state */
+const S={files:[],assets:[],libs:[],folders:new Map(),dups:[],viewDups:[],active:new Set(),scope:null,stat:'',tab:'load',asOf:new Date(),
+ th:{stale:3,deep:5,tiny:2,big:500,mb:100,stuck:180,pat:'',appr:'',tags:'',asof:''},re:null,appr:new Set(),apprTags:new Set(),byId:new Map(),exp:{q:'',lib:'',flag:'',status:'',ext:'',folder:'',direct:'',miss:''},fa:{q:'',issue:''},st:{lib:'',metric:'count',view:'treemap'},mm:{mode:'both',view:'overview'},insF:{sev:'',area:''}};
+const PAGES={},TB={};let CH=[],DR=null,DRILLS=Object.create(null),VA=[],VF=null;
+
+/* charts */
+const AX=(o={})=>({axisLine:{lineStyle:{color:C.g3}},axisLabel:{color:TXT},splitLine:{lineStyle:{color:C.g4,opacity:.6}},...o});
+function ec(id,opt){const el=document.getElementById(id);if(!el)return;const c=echarts.init(el);
+ c.setOption({backgroundColor:'transparent',color:PAL,textStyle:{color:TXT,fontFamily:FONT},...opt,tooltip:{backgroundColor:'#fff',borderColor:C.g4,textStyle:{color:'#000'},extraCssText:'box-shadow:0 2px 10px rgba(0,0,0,.15);border-radius:4px',...(opt.tooltip||{})}});CH.push(c);return c}
+window.addEventListener('resize',()=>CH.forEach(c=>c.resize()));
+function stackBy(id,A,catFn,serFn,o={}){
+ const cm=new Map(),st=new Map();
+ for(const a of A){const c=catFn(a),s=serFn(a);if(c==null||s==null)continue;st.set(s,(st.get(s)||0)+1);let m=cm.get(c);if(!m)cm.set(c,m=new Map());m.set(s,(m.get(s)||0)+1)}
+ const sers=[...st.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]),N=o.top||10,keep=sers.slice(0,N),rest=new Set(sers.slice(N));
+ const cats=[...cm.keys()].sort(o.catSort||((a,b)=>a>b?1:a<b?-1:0)),tot=new Map(cats.map(c=>[c,sum([...cm.get(c).values()],x=>x)]));
+ const val=(c,f)=>{let v=0;for(const [k,n] of cm.get(c))if(f(k))v+=n;return o.pct?pct(v,tot.get(c)):v};
+ const series=keep.map(s=>({name:String(s),type:'bar',stack:'t',emphasis:{focus:'series'},data:cats.map(c=>val(c,k=>k===s))}));
+ if(rest.size)series.push({name:'Other',type:'bar',stack:'t',itemStyle:{color:C.g3},data:cats.map(c=>val(c,k=>rest.has(k)))});
+ const cx={type:'category',data:cats.map(String),...AX(),...(o.h?{inverse:true}:{})};if(o.h)cx.axisLabel={color:TXT,width:o.lw||200,overflow:'truncate'};
+ const vx={type:'value',...AX(),...(o.pct?{max:100}:{})};
+ const c=ec(id,{tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},legend:{top:0,type:'scroll',textStyle:{color:TXT}},grid:{left:10,right:20,top:40,bottom:20,containLabel:true},xAxis:o.h?vx:cx,yAxis:o.h?cx:vx,series});
+ if(c&&o.on)c.on('click',p=>{if(p.componentType==='series')o.on(p.name,p.seriesName)});return c}
+function stk(id,cats,ser,o={}){const c=ec(id,{tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},legend:{top:0,type:'scroll',textStyle:{color:TXT}},grid:{left:10,right:20,top:40,bottom:20,containLabel:true},
+ xAxis:o.h?{type:'value',...AX()}:{type:'category',data:cats,...AX({axisLabel:{color:TXT,interval:0,rotate:o.rot||0}})},
+ yAxis:o.h?{type:'category',inverse:true,data:cats,axisLabel:{color:TXT,width:220,overflow:'truncate'},axisLine:{lineStyle:{color:C.g3}}}:{type:'value',...AX()},
+ series:ser.map(s=>({name:s.n,type:'bar',stack:'t',itemStyle:{color:s.c},data:s.d}))});
+ if(c&&o.on)c.on('click',p=>{if(p.componentType==='series')o.on(p.name,p.seriesName)});return c}
+function simpleBar(id,pairs,o={}){
+ const c=ec(id,{tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},grid:{left:10,right:20,top:20,bottom:20,containLabel:true},
+  xAxis:o.h?{type:'value',...AX()}:{type:'category',data:pairs.map(p=>p[0]),...AX(o.rot!=null||o.all?{axisLabel:{color:TXT,interval:0,rotate:o.rot||0}}:{})},
+  yAxis:o.h?{type:'category',inverse:true,data:pairs.map(p=>p[0]),axisLabel:{color:TXT,width:o.lw||220,overflow:'truncate'},axisLine:{lineStyle:{color:C.g3}}}:{type:'value',...AX()},
+  series:[{type:'bar',data:pairs.map(p=>({value:p[1],itemStyle:p[2]?{color:p[2]}:undefined})),itemStyle:{color:C.blue}}]});
+ if(c&&o.onClick)c.on('click',p=>o.onClick(p.name,p.value,p));return c}
+function pie(id,pairs){return ec(id,{tooltip:{trigger:'item',formatter:'{b}: {c} ({d}%)'},legend:{type:'scroll',bottom:0,textStyle:{color:TXT}},series:[{type:'pie',radius:['42%','70%'],center:['50%','45%'],data:pairs.map(p=>({name:String(p[0]),value:p[1]})),label:{color:TXT},itemStyle:{borderColor:'#fff',borderWidth:2}}]})}
+function heat(id,xs,ys,data,o={}){
+ const tipHtml=p=>{const v=p.value;return (o.tip?o.tip(v[0],v[1],v[2],v[3],v[4]):`${esc(ys[v[1]])}<br>${esc(xs[v[0]])}: <b>${v[2].toFixed(1)}%</b>`)+(o.onClick?'<br><span style="color:#706b69">Click to list the assets missing this field</span>':'')};
+ const c=ec(id,{tooltip:{position:'top',confine:true,extraCssText:'box-shadow:0 2px 10px rgba(0,0,0,.15);border-radius:4px;white-space:normal;max-width:320px;line-height:1.5',formatter:tipHtml},grid:{left:10,right:30,top:20,bottom:70,containLabel:true},
+  xAxis:{type:'category',data:xs,axisLabel:{color:TXT,rotate:o.rot||0},axisLine:{lineStyle:{color:C.g3}}},yAxis:{type:'category',data:ys.map(y=>short(y,50)),axisLabel:{color:TXT,fontSize:10},axisLine:{lineStyle:{color:C.g3}}},
+  visualMap:{type:'piecewise',orient:'horizontal',left:'center',bottom:0,textStyle:{color:TXT},pieces:[{lt:50,color:C.sr,label:'< 50%'},{gte:50,lt:80,color:C.sy,label:'50–79%'},{gte:80,color:C.sg,label:'≥ 80%'}],dimension:2},
+  series:[{type:'heatmap',data:data.map(d=>({value:d,label:{color:(d[2]>=50&&d[2]<80)?'#000':'#fff'}})),label:{show:true,fontSize:10,formatter:p=>p.value[2].toFixed(1)+'%'},itemStyle:{borderColor:'#fff',borderWidth:1}}]});
+ if(c&&o.onClick)c.on('click',p=>{if(p.value)o.onClick(p.value[0],p.value[1],p.value[2])});return c}
+const card=(t,id,h=320,sub='')=>`<div class="card"><h3>${t}</h3>${sub?`<p class="mut">${sub}</p>`:''}<div id="${id}" style="height:${h}px"></div></div>`;
+const kpi=(l,v,s='',c='',d='')=>`<div class="kpi ${c} ${d?'click':''}" ${d?`data-drill="${d}"`:''}><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
+function K(key,fn,n){if(n===0)return'';DRILLS[key]=fn;return key}
+const kp=(l,v,s,c,k,fn,n)=>kpi(l,v,s,c,K(k,fn,n));
+
+/* tables */
+function regTable(id,cols,rows,opt={}){const old=TB[id];TB[id]={cols,rows,k:old?old.k:(opt.k||cols[0].k),dir:old?old.dir:(opt.dir||-1),limit:opt.limit||150,click:opt.click,file:opt.file||id+'.csv'};drawTable(id)}
+function sortedIdx(t){const c=t.cols.find(c=>c.k===t.k),idx=t.rows.map((r,i)=>i);if(c){const v=t.rows.map(r=>c.v(r));idx.sort((a,b)=>(v[a]>v[b]?1:v[a]<v[b]?-1:0)*t.dir)}return idx}
+function drawTable(id){const t=TB[id],el=document.getElementById(id);if(!el)return;const idx=sortedIdx(t),shown=idx.slice(0,t.limit);
+ el.innerHTML=`<div class="tw"><table class="${t.click?'clk':''}"><thead><tr>${t.cols.map(c=>`<th data-tb="${id}" data-k="${c.k}" class="${c.num?'num':''}">${c.l}${t.k===c.k?(t.dir>0?' ▲':' ▼'):''}</th>`).join('')}</tr></thead><tbody>${shown.map(i=>`<tr data-tb="${id}" data-i="${i}">${t.cols.map(c=>`<td class="${c.num?'num':''}">${c.f?c.f(t.rows[i]):esc(c.v(t.rows[i]))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+ <p class="mut" style="margin-top:8px">Showing ${fmtN(shown.length)} of ${fmtN(t.rows.length)} rows ${shown.length<t.rows.length?`· <a href="#" data-more="${id}">show 200 more</a>`:''} · <a href="#" data-exp="${id}">export CSV</a></p>`}
+function exportTable(id){const t=TB[id],idx=sortedIdx(t);dl(t.file,idx.map(i=>{const o={};t.cols.forEach(c=>o[c.l]=(c.x||c.v)(t.rows[i]));return o}))}
+function dl(name,rows){const u=URL.createObjectURL(new Blob([Papa.unparse(rows)],{type:'text/csv'}));const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+const badges=a=>a.flags.filter(f=>f!=='noAlt').map(f=>`<span class="b ${FLAGS[f][1]}">${FLAGS[f][0]}</span>`).join('');
+const issBadges=n=>n.issues.map(i=>`<span class="b ${['naming','cleanupAssets','stale'].includes(i)?'r':['lowMeta','tiny'].includes(i)?'m':'o'}">${ISS[i][0]}</span>`).join('');
+const AC={t:{k:'t',l:'Title',v:a=>a.title},lib:{k:'lib',l:'Library',v:a=>a.lib},p:{k:'p',l:'Folder',v:a=>a.path},e:{k:'e',l:'Type',v:a=>a.ext},s:{k:'s',l:'Size',v:a=>a.size,f:a=>fmtB(a.size),x:a=>a.size,num:1},
+ st:{k:'st',l:'Status',v:a=>a.status||'(none)'},cr:{k:'cr',l:'Creator',v:a=>a.creator},mo:{k:'mo',l:'Modified',v:a=>fmtD(a.modified)},cd:{k:'cd',l:'Created',v:a=>fmtD(a.created)},id:{k:'id',l:'ID',v:a=>a.id},
+ fl:{k:'fl',l:'Flags',v:a=>a.flags.map(f=>FLAGS[f][0]).join('; '),f:badges},cs:{k:'cs',l:'Copyright',v:a=>a.copyStatus||'(none)'},ex:{k:'ex',l:'Expires',v:a=>fmtD(a.expires)},li:{k:'li',l:'Licence',v:a=>a.license}};
+const txc=s=>s?`<div class="clip" title="${esc(s)}">${esc(s)}</div>`:'<span class="none" title="Empty">—</span>';
+Object.assign(AC,{de:{k:'de',l:'Description',v:a=>a.desc,f:a=>txc(a.desc)},tg:{k:'tg',l:'Tags',v:a=>a.tags.join(', '),f:a=>txc(a.tags.join(', '))},al:{k:'al',l:'Alt text',v:a=>a.alt,f:a=>txc(a.alt)}});
+// 'dta' = Description, Tags, Alt text
+const cl=(...ks)=>ks.flatMap(k=>k==='dta'?[AC.de,AC.tg,AC.al]:[AC[k]]);
+const rotS=a=>['R','O','T'].filter(k=>a.rot[k]).map(k=>ROTN[k]).join(', '),aR=a=>a.rot.R||a.rot.O||a.rot.T,rkTxt=a=>a.rk.map(k=>RK[k][0]).join('; ');
+const relIss=a=>{const r=[];if(a.brk.length)r.push('Broken link');if(a.one.length)r.push('One-way link');if(a.unl)r.push('Unlinked variant');return r};
+Object.assign(AC,{age:{k:'age',l:'Days since modified',v:a=>a.age==null?-1:a.age,num:1,f:a=>a.age==null?'–':fmtN(a.age)},
+ rk:{k:'rk',l:'Risk',v:a=>a.rl*100+a.rk.length,x:a=>RL[a.rl]+': '+rkTxt(a),f:a=>`<span class="b ${RLC[a.rl]}">${RL[a.rl]}</span> ${esc(rkTxt(a))}`},
+ nm:{k:'nm',l:'Naming issues',v:a=>a.nm.map(k=>NMR[k][0]).join('; '),f:a=>bdg(a.nm.map(k=>NMR[k][0]),'o')},
+ rot:{k:'rot',l:'ROT',v:a=>rotS(a),f:a=>bdg(rotS(a).split(', ').filter(Boolean),'o')},
+ fs:{k:'fs',l:'Findability',v:a=>a.fs,num:1,f:a=>hb(a.fs)},fw:{k:'fw',l:'Weak spots',v:a=>a.fsw.join('; '),f:a=>bdg(a.fsw,'m')},
+ rel:{k:'rel',l:'Related · attachments',v:a=>a.rel.length+a.att.length,num:1,f:a=>`${a.rel.length} · ${a.att.length}`},
+ ri:{k:'ri',l:'Link issues',v:a=>relIss(a).join('; '),f:a=>bdg(relIss(a),'o')}});
+const FCOLS=[{k:'lib',l:'Library',v:x=>x.n.lib},{k:'p',l:'Folder',v:x=>x.n.path},{k:'n',l:'Assets',v:x=>x.n.total,num:1},{k:'r',l:'Issues',v:x=>x.r.map(k=>NMF[k][0]).join('; '),f:x=>bdg(x.r.map(k=>NMF[k][0]),'o')}];
+
+/* loading & building */
+function guessName(fn,fields){for(const k in GUESS)if(fn.includes(k))return GUESS[k];const f=fields.join('|');
+ if(/Video/i.test(f))return'Videos';if(/Colour selection/i.test(f))return'Icons';if(/Brand \(TEXT\)/i.test(f))return'Logos';return fn.replace(/\.csv$/i,'')}
+function parseFiles(list){return Promise.all([...list].map(f=>new Promise(res=>Papa.parse(f,{header:true,skipEmptyLines:true,complete:r=>{const fields=r.meta.fields||[];S.files.push({name:f.name,label:guessName(f.name,fields),res:r});res()}}))))}
+function build(){
+ S.assets=[];S.libs=[];
+ S.files.forEach(f=>{const fields=f.res.meta.fields||[],km={};fields.forEach(k=>km[k.trim().toLowerCase()]=k);
+  const custom=fields.filter(k=>k.trim()&&!STD.has(k.trim().toLowerCase()));
+  S.libs.push({name:f.label,custom,rows:f.res.data.length,file:f.name});
+  for(const r of f.res.data){const g=n=>{const k=km[n];return k&&r[k]!=null?String(r[k]).trim():''};
+   const a={lib:f.label,id:g('id'),title:g('title'),size:+g('filesizeinbytes')||0,ext:g('fileextension').toLowerCase(),desc:g('description'),alt:g('alternativetext'),
+    creator:g('creator'),created:pd(g('createdat')),modified:pd(g('modifiedat')),modifier:g('modifier'),expires:pd(g('expiresat')),folder:g('folderpath'),
+    status:g('workflowstatus'),copyStatus:g('copyrightstatus'),copyNotice:g('copyrightnotice'),license:g('licensesapplied'),licDesc:g('licensedescriptions'),
+    collections:splitList(g('collections'),/\|/),tags:splitList(g('tags'),/[|;,]/),rel:splitList(g('relatedassets'),/[|,;\s]+/),att:splitList(g('attachments'),/\|/),custom:{}};
+   a.restr=/should not|must not|not be used|not for|do not|restrict|only for|model\(s\)/i.test(a.licDesc);
+   custom.forEach(k=>a.custom[k]=r[k]!=null?String(r[k]).trim():'');
+   a.parts=a.folder?a.folder.split(' / '):['(no folder)'];a.path=a.parts.join(' / ');
+   a.meta=[a.desc,a.alt,a.tags.length,a.copyNotice].filter(Boolean).length/4;
+   a.hay=(a.title+' '+a.path+' '+a.tags.join(' ')+' '+a.id+' '+a.creator).toLowerCase();
+   S.assets.push(a)}})}
+function computeAll(){
+ const th=S.th,asOf=S.asOf,cut=new Date(asOf);cut.setFullYear(cut.getFullYear()-th.stale);const soon=new Date(+asOf+90*864e5);
+ S.folders=new Map();
+ for(const a of S.assets)for(let i=1;i<=a.parts.length;i++){const p=a.parts.slice(0,i).join(' / '),k=a.lib+'\u0001'+p;let n=S.folders.get(k);
+  if(!n)S.folders.set(k,n={key:k,lib:a.lib,path:p,name:a.parts[i-1],depth:i,parent:i>1?a.lib+'\u0001'+a.parts.slice(0,i-1).join(' / '):null,direct:0,total:0,size:0,kids:new Set(),ch:[],assets:[]});
+  n.total++;n.size+=a.size;if(i<a.parts.length)n.kids.add(a.parts[i]);if(i===a.parts.length){n.direct++;n.assets.push(a)}}
+ for(const n of S.folders.values())if(n.parent)S.folders.get(n.parent).ch.push(n);
+ for(const a of S.assets){const f=[];
+  if(!a.desc)f.push('noDesc');if(!a.alt)f.push('noAlt');if(!a.tags.length)f.push('noTags');if(!a.collections.length)f.push('noColl');if(!a.desc&&!a.tags.length)f.push('noBoth');
+  if(CLEANST.test(a.status))f.push('badStatus');
+  if(a.expires){if(a.expires<asOf)f.push('expired');else if(a.expires<soon)f.push('expSoon')}
+  if(a.parts.some(s=>BAD.test(s)))f.push('badFolder');if(GENERIC.test(a.title))f.push('genTitle');
+  if(a.modified&&a.modified<cut)f.push('stale');if(!a.folder)f.push('noFolder');if(!a.copyNotice)f.push('noCopy');
+  if(a.size>th.mb*1048576)f.push('big');if(SYS.test(a.modifier))f.push('sys');a.flags=f}
+ const norm=t=>t.toLowerCase().replace(/\.\w{2,4}$/,'').replace(/[\s_\-]*(copy|kopie|\(\d+\))$/,'');
+ const gA=new Map();for(const a of S.assets)if(a.size>0){const k=a.size+'|'+a.ext+'|'+norm(a.title);(gA.get(k)||gA.set(k,[]).get(k)).push(a)}
+ S.dups=[];const inA=new Set(),gB=new Map();
+ for(const items of gA.values())if(items.length>1){S.dups.push({tier:'Same name + size',size:items[0].size,items});items.forEach(a=>inA.add(a))}
+ for(const a of S.assets)if(a.size>=51200&&!inA.has(a)){const k=a.size+'|'+a.ext;(gB.get(k)||gB.set(k,[]).get(k)).push(a)}
+ for(const items of gB.values())if(items.length>1)S.dups.push({tier:'Same size, different name',size:items[0].size,items});
+ const sib=new Map();
+ for(const n of S.folders.values()){const k=(n.parent||'ROOT'+n.lib)+'|'+nk(n.name);(sib.get(k)||sib.set(k,[]).get(k)).push(n)}
+ for(const arr of sib.values())if(arr.length>1)arr.forEach(n=>n.nearDup=arr.filter(x=>x!==n).map(x=>x.name));
+ for(const n of S.folders.values()){
+  if(n.direct){n.compl=sum(n.assets,a=>a.meta)/n.direct;n.badCount=n.assets.filter(a=>a.flags.includes('badStatus')).length;n.badShare=n.badCount/n.direct;n.last=n.assets.reduce((m,a)=>a.modified&&(!m||a.modified>m)?a.modified:m,null)}else{n.compl=null;n.badCount=0;n.badShare=0;n.last=null}
+  const I=[];
+  if(n.depth>th.deep)I.push('deep');if(BAD.test(n.name))I.push('naming');if(n.name!==n.name.trim()||/\s{2,}/.test(n.name))I.push('spacing');
+  if(n.nearDup)I.push('nearDup');if(n.direct&&n.direct<=th.tiny&&!n.kids.size)I.push('tiny');if(!n.direct&&n.kids.size===1)I.push('passThrough');
+  if(n.direct>th.big)I.push('oversized');if(n.last&&n.last<cut)I.push('stale');if(n.direct&&n.compl<.5)I.push('lowMeta');if(n.badShare>.2)I.push('cleanupAssets');
+  n.issues=I;const h=s=>I.includes(s);
+  n.health=Math.round(clamp(100-(n.direct?35*(1-n.compl):0)-25*n.badShare-(h('stale')?10:0)-(h('naming')||h('spacing')?10:0)-(h('tiny')?8:0)-(h('passThrough')?5:0)-(h('deep')?7:0)-(h('nearDup')?5:0)-(h('oversized')?5:0),0,100));
+  n.action=[...new Set(I.map(i=>ISS[i][1]))].join('; ')}
+ computeGov()}
+/* governance metrics: naming, rights, ROT, findability, workflow, related assets */
+function computeGov(){const has=(a,f)=>a.flags.includes(f);
+ // Redundant (ROT) = in any duplicate group across ALL loaded libraries, independent of the view
+ S.assets.forEach(a=>a.dupe=false);for(const g of S.dups)for(const a of g.items)a.dupe=true;
+ for(const a of S.assets){
+  a.expired=has(a,'expired');a.expSoon=has(a,'expSoon');a.bad=has(a,'badStatus');a.badFolder=has(a,'badFolder');a.gen=has(a,'genTitle');a.stale=has(a,'stale');
+  a.ok=S.appr.size?S.appr.has(a.status.toLowerCase()):FINAL.test(a.status);
+  a.age=a.modified?Math.max(0,Math.round((S.asOf-a.modified)/864e5)):null;
+  a.nm=Object.keys(NMR).filter(k=>NMR[k][1](a));
+  a.rk=Object.keys(RK).filter(k=>RK[k][2](a));a.rl=a.rk.some(k=>RK[k][1]==='h')?3:a.rk.some(k=>RK[k][1]==='m')?2:a.rk.length?1:0;
+  a.fs=sum(FC,c=>c[2](a));a.fsw=FC.filter(c=>c[2](a)<c[1]).map(c=>c[0]);
+  a.rot={R:a.dupe,O:a.bad||a.expired||a.badFolder||(a.stale&&!a.collections.length),T:!a.tags.length&&!a.desc&&!a.collections.length}}
+ S.byId=new Map(S.assets.map(a=>[a.id,a]));const grp=new Map();
+ for(const a of S.assets){a.brk=a.rel.filter(i=>!S.byId.has(i));a.one=a.rel.filter(i=>{const b=S.byId.get(i);return b&&!b.rel.includes(a.id)});a.unl=false;
+  const k=a.lib+'|'+a.title.toLowerCase().replace(/\.\w{2,4}$/,'').replace(/[\s_\-]*(v?\d+|copy|kopie|final)$/,'').replace(/[^a-z0-9]+/g,'');if(k.length>a.lib.length+3)(grp.get(k)||grp.set(k,[]).get(k)).push(a)}
+ for(const g of grp.values())if(g.length>1&&g.length<=8)for(const a of g)if(!g.some(b=>b!==a&&(a.rel.includes(b.id)||b.rel.includes(a.id))))a.unl=true}
+
+/* scope: library chips + folder filter + status filter */
+const inScope=a=>{const s=S.scope;if(!s)return true;if(a.lib!==s.lib)return false;for(let i=0;i<s.parts.length;i++)if(a.parts[i]!==s.parts[i])return false;return true};
+const inScopeF=n=>{const s=S.scope;if(!s)return true;if(n.lib!==s.lib)return false;const p=s.parts.join(' / ');return !p||n.path===p||n.path.startsWith(p+' / ')};
+const inView=a=>S.active.has(a.lib)&&inScope(a)&&(!S.stat||(a.status||'(none)')===S.stat);
+const cur=()=>VA;
+// folder counts follow the status filter; health score and issue flags stay library-wide
+function curFolders(){if(VF)return VF;const tot=new Map();
+ for(const a of VA)for(let i=1;i<=a.parts.length;i++){const k=a.lib+'\u0001'+a.parts.slice(0,i).join(' / ');tot.set(k,(tot.get(k)||0)+1)}
+ VF=[...S.folders.values()].filter(n=>S.active.has(n.lib)&&inScopeF(n)&&tot.has(n.key)).map(n=>{const fa=n.assets.filter(inView),bc=fa.filter(a=>a.flags.includes('badStatus')).length;
+  return{...n,assets:fa,direct:fa.length,total:tot.get(n.key),compl:fa.length?sum(fa,a=>a.meta)/fa.length:null,badCount:bc,badShare:fa.length?bc/fa.length:0}});return VF}
+function groupFolders(A){const m=new Map();for(const a of A){const k=a.lib+'\u0001'+a.path;let o=m.get(k);if(!o)m.set(k,o={lib:a.lib,path:a.path,as:[]});o.as.push(a)}return[...m.values()]}
+const nameFolders=()=>curFolders().filter(n=>n.key!==n.lib+'\u0001(no folder)');
+const activeLibs=()=>S.libs.map(l=>l.name).filter(n=>S.active.has(n)&&(!S.scope||S.scope.lib===n));
+function refreshDupes(){
+ for(const g of S.dups)for(const a of g.items){const i=a.flags.indexOf('dupe');if(i>-1)a.flags.splice(i,1)}
+ S.viewDups=S.dups.map(g=>({...g,items:g.items.filter(inView)})).filter(g=>g.items.length>1);
+ for(const g of S.viewDups)for(const a of g.items)a.flags.push('dupe')}
+function drill(lib,parts){S.scope={lib,parts};S.exp.folder='';S.exp.lib='';render()}
+function scopeUI(){
+ if(!S.assets.length)return'';
+ const act=S.libs.map(l=>l.name).filter(n=>S.active.has(n)),sc=S.scope;
+ const mk=(lvl,opts,sel,ph)=>`<select data-scope="${lvl}"><option value="">${ph}</option>${opts.map(o=>`<option value="${esc(o[0])}" ${o[0]===sel?'selected':''}>${esc(o[1])}</option>`).join('')}</select>`;
+ let h='<span class="mut" style="margin:0"><b>Folder</b> ›</span>'+mk(0,act.map(l=>[l,l]),sc&&sc.lib,'All libraries');
+ if(sc){let kids=[...S.folders.values()].filter(n=>n.lib===sc.lib&&n.depth===1);
+  for(let i=0;i<=sc.parts.length;i++){if(!kids.length)break;const sel=sc.parts[i];
+   h+=mk(i+1,kids.slice().sort((a,b)=>b.total-a.total).map(n=>[n.name,n.name+' ('+fmtN(n.total)+')']),sel,i===0?'All folders':'All subfolders');
+   const ch=kids.find(n=>n.name===sel);kids=ch?ch.ch:[]}
+  h+='<button class="btn s" data-scope-clear>✕ Clear folder filter</button>'}
+ return h}
+function statusUI(){if(!S.assets.length)return'';const m=new Map();
+ for(const a of S.assets)if(S.active.has(a.lib)&&inScope(a)){const k=a.status||'(none)';m.set(k,(m.get(k)||0)+1)}
+ if(S.stat&&!m.has(S.stat))m.set(S.stat,0);
+ return `<label class="mut" style="margin:0;display:flex;flex-direction:row;align-items:center;gap:6px"><b>Status</b><select data-stat><option value="">All statuses</option>${[...m.entries()].sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<option value="${esc(k)}" ${k===S.stat?'selected':''}>${esc(k)} (${fmtN(n)})</option>`).join('')}</select></label>`}
+function go(o){Object.assign(S.exp,{q:'',lib:'',flag:'',status:'',ext:'',folder:'',direct:'',miss:''},o.exp||{});if(o.fa)Object.assign(S.fa,o.fa);if(o.scope)S.scope=o.scope;if(o.mview)S.mm.view=o.mview;S.tab=o.tab;render()}
+
+/* chrome */
+function chrome(){const lock=!S.assets.length;
+ $('#nav').innerHTML=TABS.map(([k,l])=>k==='#'?`<div class="navg">${l}</div>`:`<button data-tab="${k}" class="${S.tab===k?'on':''}" ${lock&&k!=='load'?'disabled title="Load data and click Analyse to unlock this screen"':''}>${l}</button>`).join('')+(lock?'<p class="navhint">The reports unlock after you load your CSV exports and click <b>Analyse</b>.</p>':'');
+ $('#chips').innerHTML=S.libs.map(l=>`<span class="chip ${S.active.has(l.name)?'on':''}" data-lib="${esc(l.name)}">${esc(l.name)}</span>`).join('');
+ $('#stat').innerHTML=statusUI();$('#scope').innerHTML=scopeUI();
+ $('#asof').textContent=lock?'No data loaded yet':`${fmtN(VA.length)} assets in view${S.stat?' · status: '+S.stat:''} · as-of ${fmtD(S.asOf)}`}
+function render(){closeDrawer();DRILLS=Object.create(null);CH.forEach(c=>c.dispose());CH=[];if(!S.assets.length&&S.tab!=='load')S.tab='load';VA=S.assets.filter(inView);VF=null;refreshDupes();chrome();
+ try{PAGES[S.tab]()}catch(e){console.error(e);$('#view').innerHTML=`<div class="card"><h3>Something went wrong on this screen</h3><p class="mut">${esc(e.message)}</p></div>`}
+ const d=TD[S.tab];if(d)$('#view').insertAdjacentHTML('afterbegin',`<div class="ph"><h1>${d[0]}</h1><p>${d[1]}</p></div>`);window.scrollTo(0,0)}
+
+/* drill-down drawer */
+const MISS_CORE=['Description','Alt text','Tags','© notice'];
+function missList(a){const fs=MISS_CORE.slice();if(DR&&DR.field&&!fs.includes(DR.field)&&DR.field!==TDN&&MFD[DR.field])fs.push(DR.field);return fs.filter(n=>!MFD[n](a))}
+const DR_COLS={
+ missing:()=>[AC.t,AC.lib,AC.p,{k:'m',l:'Missing',v:a=>missList(a).join(', '),f:a=>missList(a).map(m=>`<span class="b ${m==='Description'||m==='Tags'?'o':'m'}">${esc(m)}</span>`).join('')||'<span class="b i">none of these</span>'},AC.de,AC.tg,AC.al,AC.cr,AC.e,AC.cd,AC.id],
+ general:()=>cl('t','lib','p','dta','e','s','st','cr','mo','fl','id'),
+ life:()=>cl('t','lib','p','st','cs','ex','mo','li','dta','cr','id'),
+ folders:()=>[{k:'lib',l:'Library',v:n=>n.lib},{k:'p',l:'Folder',v:n=>n.path},{k:'d',l:'Files here',v:n=>n.direct,num:1,f:n=>fmtN(n.direct)},{k:'t',l:'Incl. subfolders',v:n=>n.total,num:1,f:n=>fmtN(n.total)},
+  {k:'s',l:'Storage',v:n=>n.size,f:n=>fmtB(n.size),x:n=>n.size,num:1},{k:'m',l:'Metadata %',v:n=>n.compl==null?-1:m1(100*n.compl),num:1,f:n=>n.compl==null?'–':(100*n.compl).toFixed(1)+'%'},
+  {k:'h',l:'Health',v:n=>n.health,num:1,f:n=>hb(n.health)},{k:'i',l:'Issues',v:n=>n.issues.map(i=>ISS[i][0]).join('; '),f:issBadges}],
+ groups:()=>[{k:'tier',l:'Match',v:g=>g.tier},{k:'n',l:'Copies',v:g=>g.items.length,num:1},{k:'size',l:'File size',v:g=>g.size,f:g=>fmtB(g.size),x:g=>g.size,num:1},
+  {k:'w',l:'Wasted',v:g=>g.size*(g.items.length-1),f:g=>fmtB(g.size*(g.items.length-1)),x:g=>g.size*(g.items.length-1),num:1},
+  {k:'t',l:'Title(s)',v:g=>[...new Set(g.items.map(a=>a.title))].slice(0,3).join(' | ')},{k:'loc',l:'Locations',v:g=>g.items.slice(0,5).map(a=>a.lib+': '+a.path).join(' || ')}]};
+function openDrawer(cfg){
+ DR={field:'',sub:'',ex:null,cols:'missing',unit:'assets',sortK:'p',sortDir:1,...cfg};
+ DR.total=cfg.total!==undefined?cfg.total:(DR.unit==='assets'?cur().length:0);
+ DR.file=(DR.title||'list').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,70)+'.csv';
+ delete TB.dr_tb;
+ $('#dr_t').textContent=DR.title;$('#dr_q').value='';$('#dr_ex').style.display=DR.ex?'':'none';$('#dr_back').hidden=!DR.prev;
+ const el=$('#drawer'),was=!el.hidden;el.hidden=false;document.body.classList.add('dr-open');
+ drawDrawer();if(!was)setTimeout(()=>CH.forEach(c=>c.resize()),30)}
+function closeDrawer(){const el=$('#drawer');if(!el||el.hidden)return;el.hidden=true;document.body.classList.remove('dr-open');DR=null;setTimeout(()=>CH.forEach(c=>c.resize()),30)}
+function drawDrawer(){if(!DR)return;const q=$('#dr_q').value.toLowerCase().trim(),hay=DR.hay||(a=>a.hay),rows=q?DR.rows.filter(r=>hay(r).includes(q)):DR.rows,u=DR.unit;
+ $('#dr_s').textContent=`${fmtN(rows.length)}${q?' of '+fmtN(DR.rows.length):''} ${u}${DR.total?' · '+P(rows.length,DR.total)+' of '+u+' in view':''}${DR.sub?' · '+DR.sub:''}`;
+ const cols=Array.isArray(DR.cols)?DR.cols:DR_COLS[DR.cols]();
+ regTable('dr_tb',cols,rows,{k:DR.sortK,dir:DR.sortDir,limit:100,file:DR.file,click:DR.click||(a=>go({tab:'explorer',exp:{q:a.id}}))})}
+const listA=(title,sub,rows,o={})=>openDrawer({title,sub,rows,cols:'general',...o});
+const listF=(title,sub,rows,o={})=>openDrawer({title,sub,rows,cols:'folders',unit:'folders',sortK:'d',sortDir:-1,hay:n=>(n.lib+' '+n.path).toLowerCase(),click:n=>go({tab:'explorer',scope:{lib:n.lib,parts:n.path.split(' / ')}}),...o});
+const reg=(name,fn)=>{MISSFN[name]=fn;return name};
+const lst=(t,s,A,p,o={})=>listA(t,s,A.filter(p),{ex:{exp:{miss:reg(t,p)}},...o});
+// governance lists take ready-made rows; "Open in Asset explorer" filters the explorer to exactly these assets
+const gl=(title,sub,rows,o={})=>{const s=new Set(rows);openDrawer({title,sub,rows,cols:cl('t','lib','p','st','dta','cr','mo'),ex:{exp:{miss:reg(title,a=>s.has(a))}},...o})};
+const glF=(title,sub,rows)=>openDrawer({title,sub,rows,cols:FCOLS,unit:'folders',sortK:'n',sortDir:-1,hay:x=>(x.n.lib+' '+x.n.path).toLowerCase(),click:x=>gl('Assets in '+x.n.path,x.n.lib,cur().filter(a=>a.lib===x.n.lib&&(a.path===x.n.path||a.path.startsWith(x.n.path+' / '))),{cols:cl('t','lib','p','nm','dta','cr'),prev:DR})});
+
+/* PAGE: load */
+PAGES.load=()=>{const T=S.th;
+ $('#view').innerHTML=`${S.assets.length?'':'<p class="tip"><b>Start here:</b> the report screens are greyed out until you load your CSV exports and click <b>Analyse</b>.</p>'}
+ <div class="card"><h2>1 · Load the library exports</h2><div id="drop" class="drop">Drop all CSV exports here, or <label class="btn s">Browse<input id="fi" type="file" accept=".csv" multiple hidden></label><p class="mut" style="margin-top:10px">One CSV = one library. Processed locally in your browser; nothing is uploaded.</p></div></div>
+ <div class="card"><h2>2 · Name each library</h2><p class="mut">Names are guessed from content. Please check them.</p><div id="flist"></div></div>
+ <div class="card"><h2>3 · Audit thresholds</h2><div class="thr">
+ <label>Stale after (years, also used by ROT)<input id="th_stale" type="number" value="${T.stale}"></label><label>Deep nesting above (levels)<input id="th_deep" type="number" value="${T.deep}"></label>
+ <label>Tiny folder ≤ (assets)<input id="th_tiny" type="number" value="${T.tiny}"></label><label>Oversized folder > (assets)<input id="th_big" type="number" value="${T.big}"></label>
+ <label>Very large file > (MB)<input id="th_mb" type="number" value="${T.mb}"></label><label>As-of date (blank = latest date in data)<input id="th_asof" type="date" value="${esc(T.asof)}"></label></div></div>
+ <div class="card"><h2>4 · Governance rules (optional)</h2><p class="mut">Used by the Governance reports. Leave blank to use the defaults.</p><div class="thr">
+ <label>Workflow "stuck" after (days)<input id="th_stuck" type="number" value="${T.stuck}"></label>
+ <label>Naming pattern (regular expression)<input id="th_pat" value="${esc(T.pat)}" placeholder="e.g. ^[A-Za-z0-9_-]+$"></label>
+ <label>Approved workflow statuses (comma separated)<input id="th_appr" value="${esc(T.appr)}" placeholder="default: Approved, Published, Final"></label></div>
+ <label class="fl">Approved tags, one per line (optional)<textarea id="th_tags" rows="3">${esc(T.tags)}</textarea></label></div>
+ <div class="bar"><button id="go" class="btn pri l">Analyse</button><span class="mut" style="margin:0">Click Analyse again after changing a threshold or rule.</span></div>`;drawFiles()};
+function drawFiles(){const el=$('#flist');if(!el)return;const g=$('#go');if(g)g.disabled=!S.files.length;
+ el.innerHTML=S.files.length?S.files.map((f,i)=>`<div class="bar"><input data-lab="${i}" value="${esc(f.label)}" style="width:240px"><span class="mut" style="margin:0">${esc(f.name)} · ${fmtN(f.res.data.length)} rows</span><button class="btn s" data-rm="${i}">✕ Remove</button></div>`).join(''):'<p class="mut">No files loaded yet.</p>'}
+function analyse(){const v=id=>$('#'+id)?$('#'+id).value:'';
+ S.th={stale:+v('th_stale')||3,deep:+v('th_deep')||5,tiny:+v('th_tiny')||2,big:+v('th_big')||500,mb:+v('th_mb')||100,stuck:+v('th_stuck')||180,pat:v('th_pat').trim(),appr:v('th_appr'),tags:v('th_tags'),asof:v('th_asof')};
+ try{S.re=S.th.pat?new RegExp(S.th.pat):null}catch(e){S.re=null;alert('The naming pattern is not a valid regular expression and was ignored.')}
+ S.appr=new Set(splitList(S.th.appr,/[,;\n]/).map(x=>x.toLowerCase()));S.apprTags=new Set(splitList(S.th.tags,/[\n,;|]/).map(x=>x.toLowerCase()));
+ build();let mx=0;S.assets.forEach(a=>{[a.created,a.modified].forEach(d=>{if(d&&+d>mx)mx=+d})});
+ S.asOf=S.th.asof?new Date(S.th.asof+'T00:00:00Z'):new Date(mx||Date.now());
+ computeAll();S.active=new Set(S.libs.map(l=>l.name));S.scope=null;S.stat='';S.exp.miss='';S.insF={sev:'',area:''};S.tab='overview';render()}
+
+/* PAGE: overview */
+PAGES.overview=()=>{const A=cur(),F=curFolders().filter(n=>n.direct),size=sum(A,a=>a.size),clean=A.filter(a=>a.flags.some(f=>CLEAN.includes(f))).length,inc=A.filter(a=>a.meta<1).length,hl=F.length?sum(F,n=>n.health*n.direct)/sum(F,n=>n.direct):0;
+ $('#view').innerHTML=`<div class="kpis">
+ ${kp('Assets',fmtN(A.length),activeLibs().length+' libraries','','ov1',()=>listA('All assets in view','Matching the library chips, folder and status filters',A,{ex:{}}),A.length)}
+ ${kp('Folders with files',fmtN(F.length),'','','ov2',()=>listF('Folders with files','Click a row to open the folder.',F),F.length)}
+ ${kp('Storage',fmtB(size),'avg '+fmtB(A.length?size/A.length:0),'','ov3',()=>listA('Storage — largest files first','Sorted by file size',A,{sortK:'s',sortDir:-1,ex:{}}),A.length)}
+ ${kp('Folder health',Math.round(hl)+'/100','asset-weighted score',kc(hl),'ov4',()=>listF('Folder health — weakest first','Lowest score first.',F,{sortK:'h',sortDir:1}),F.length)}
+ ${kp('Clean-up candidates',fmtN(clean),P(clean,A.length)+' of assets',pct(clean,A.length)>15?'r':'o','ov5',()=>lst('Clean-up candidates','Cleanup status, expired, folder naming smell or possible duplicate',A,a=>a.flags.some(f=>CLEAN.includes(f))),clean)}
+ ${kp('Metadata completeness',avgC(A).toFixed(1)+'%','avg of desc · alt · tags · ©','','ov6',()=>lst('Incomplete core metadata','Missing description, alt text, tags or © notice',A,a=>a.meta<1,{cols:'missing'}),inc)}</div>
+ <div class="g2">${card('Assets & storage by library','o1')}${card('File types','o2')}</div>
+ <div class="g2">${card('Uploads per year (by library)','o3')}${card('Workflow status mix (%)','o4')}</div>
+ <div class="g2">${card('15 biggest folders','o5',430)}${card('Folder size distribution','o6',430,'How many folders hold 1, 2–5, 6–20… assets.')}</div>`;
+ const libs=activeLibs();
+ ec('o1',{tooltip:{trigger:'axis'},legend:{textStyle:{color:TXT}},grid:{left:10,right:10,top:40,bottom:20,containLabel:true},xAxis:{type:'category',data:libs,...AX({axisLabel:{color:TXT,interval:0,rotate:20}})},
+  yAxis:[{type:'value',...AX()},{type:'value',...AX(),splitLine:{show:false},axisLabel:{color:TXT,formatter:v=>v+' GB'}}],
+  series:[{name:'Assets',type:'bar',data:libs.map(l=>A.filter(a=>a.lib===l).length)},{name:'Storage (GB)',type:'bar',yAxisIndex:1,data:libs.map(l=>+(sum(A.filter(a=>a.lib===l),a=>a.size)/1073741824).toFixed(2))}]});
+ const ext=topN(cnt(A,a=>a.ext||'(none)'),9),oth=A.length-sum(ext,e=>e[1]);pie('o2',oth>0?[...ext,['other',oth]]:ext);
+ stackBy('o3',A,a=>a.created?a.created.getUTCFullYear():null,a=>a.lib);
+ stackBy('o4',A,a=>a.lib,a=>a.status||'(none)',{pct:true,top:8});
+ simpleBar('o5',F.slice().sort((a,b)=>b.direct-a.direct).slice(0,15).map(n=>[n.lib+' · '+n.path,n.direct]),{h:true,lw:260});
+ const bk=n=>n.direct===1?'1':n.direct<=5?'2–5':n.direct<=20?'6–20':n.direct<=100?'21–100':n.direct<=500?'101–500':'500+',ord=['1','2–5','6–20','21–100','101–500','500+'];
+ stackBy('o6',F,bk,n=>n.lib,{catSort:(a,b)=>ord.indexOf(a)-ord.indexOf(b)})};
+
+/* PAGE: insights */
+const insArea=k=>k==='cross'?'Across reports':(TD[k]?TD[k][0]:k);
+const htmlTxt=h=>{const d=document.createElement('div');d.innerHTML=h;return d.textContent};
+const SEVN={high:'High',med:'Medium',info:'Info'};
+// '1 folders hold …' → '1 folder holds …': singular noun and verb when a title starts with a count of one
+const PLN={assets:'asset',folders:'folder',names:'name',titles:'title',tags:'tag',groups:'group',copies:'copy',actions:'action',images:'image',files:'file',descriptions:'description',versions:'version',entries:'entry'},PLV={sit:'sits',live:'lives',have:'has',are:'is',hold:'holds',contain:'contains',link:'links',carry:'carries',expire:'expires',score:'scores',look:'looks',differ:'differs',waste:'wastes'};
+const sing=t=>{if(!/^1 /.test(t))return t;const w=t.split(' ');let n=-1;for(let i=1;i<w.length&&!w[i-1].includes(',');i++){if(n<0&&PLN[w[i]]){w[i]=PLN[w[i]];n=i}else if(n>=0&&PLV[w[i]]){w[i]=PLV[w[i]];break}}return w.join(' ')};
+function makeInsights(){const A=cur(),N=A.length,F=curFolders(),FD=F.filter(n=>n.direct),RF=nameFolders(),out=[],fl=f=>A.filter(a=>a.flags.includes(f)),c=f=>fl(f).length,libs=activeLibs();
+ if(!N)return out;
+ // sev: high | med | info · g: where "Investigate" goes · o.area: the report a finding comes from · o.rows: the assets behind it (for "List assets")
+ const add=(sev,t,x,g,o={})=>out.push({sev,t:sing(t),x,g,area:o.area||g.tab,rows:o.rows&&o.rows.length?o.rows:null,cols:o.cols});
+ const toEx=(key,rows)=>{const st=new Set(rows);return{tab:'explorer',exp:{miss:reg('Nugget: '+key,a=>st.has(a))}}};
+ const eg=(arr,n=3)=>esc(arr.slice(0,n).join(' | '));
+ const RC=cl('t','lib','p','st','rk','ex','cs','dta');
+
+ /* Lifecycle & rights */
+ {const bs=fl('badStatus');if(bs.length){const tf=topN(cnt(bs,a=>a.lib+' · '+a.path),1)[0];add('high',`${fmtN(bs.length)} assets sit in a cleanup status`,`${P(bs.length,N)} of the assets in view. Folder with most: ${esc(tf[0])} (${tf[1]}).`,{tab:'explorer',exp:{flag:'badStatus'}},{area:'life',rows:bs,cols:'life'})}}
+ {const ex=fl('expired'),es=fl('expSoon');if(ex.length||es.length)add('high',`${fmtN(ex.length)} assets already expired, ${fmtN(es.length)} expire in 90 days`,'Check rights and licensing.',{tab:'explorer',exp:{flag:'expired'}},{area:'life',rows:ex.concat(es),cols:'life'})}
+ {const st=fl('stale');if(st.length){const old=st.reduce((m,a)=>!m||a.modified<m?a.modified:m,null);
+  add(pct(st.length,N)>=20?'med':'info',`${fmtN(st.length)} assets (${P(st.length,N)}) have not been modified in more than ${S.th.stale} years`,`Oldest last change: ${fmtD(old)}. Review them for archiving. Migrations can reset dates, so treat ages as indicative.`,{tab:'life'},{rows:st,cols:'life'})}}
+
+ /* Folder audit */
+ {const nf=FD.filter(n=>n.issues.includes('naming')||n.issues.includes('cleanupAssets')),bf=fl('badFolder');
+  if(bf.length)add('high',`${fmtN(bf.length)} assets live in folders with "old / test / do not use / archive" in the path`,`${fmtN(nf.length)} folders affected, e.g. ${esc(nf.slice(0,3).map(n=>n.path).join(' | '))}.`,{tab:'folders',fa:{issue:'naming',q:''}},{rows:bf})}
+ {const wl=libs.map(l=>{const fd=FD.filter(n=>n.lib===l);return[l,fd.length?sum(fd,n=>n.health*n.direct)/sum(fd,n=>n.direct):100]}).sort((a,b)=>a[1]-b[1])[0];
+  if(wl)add('med',`Lowest-health library: ${esc(wl[0])} (${Math.round(wl[1])}/100)`,'Start the clean-up here.',{tab:'folders'})}
+ {const tiny=FD.filter(n=>n.issues.includes('tiny')).length;if(tiny)add('med',`${fmtN(tiny)} folders hold ${S.th.tiny} or fewer assets`,`${P(tiny,FD.length)} of folders with files. Candidates for merging.`,{tab:'folders',fa:{issue:'tiny',q:''}})}
+ {const nd=F.filter(n=>n.issues.includes('nearDup')).length;if(nd)add('med',`${fmtN(nd)} folders have a near-identical sibling`,'Likely accidental duplicates.',{tab:'folders',fa:{issue:'nearDup',q:''}})}
+ {const dp=RF.filter(n=>n.issues.includes('deep'));if(dp.length){const d=dp.reduce((m,n)=>n.depth>m.depth?n:m);
+  add('med',`${fmtN(dp.length)} folders are nested more than ${S.th.deep} levels deep`,`Deepest: ${d.depth} levels (${esc(d.lib+' · '+short(d.path,90))}). Long paths are slow to browse.`,{tab:'folders',fa:{issue:'deep',q:''}})}}
+ {const ov=RF.filter(n=>n.issues.includes('oversized'));if(ov.length){const b=ov.reduce((m,n)=>n.direct>m.direct?n:m);
+  add('med',`${fmtN(ov.length)} folders hold more than ${fmtN(S.th.big)} files directly`,`Largest: ${esc(b.lib+' · '+short(b.path,90))} (${fmtN(b.direct)} files). Consider splitting into subfolders.`,{tab:'folders',fa:{issue:'oversized',q:''}})}}
+ {const pt=RF.filter(n=>n.issues.includes('passThrough')).length;if(pt)add('info',`${fmtN(pt)} folders contain only a single subfolder and no files`,'Flattening them shortens paths without losing anything.',{tab:'folders',fa:{issue:'passThrough',q:''}})}
+ {const nf=fl('noFolder');if(nf.length)add('med',`${fmtN(nf.length)} assets are not filed in any folder`,`${P(nf.length,N)} of the assets in view. They can only be found by search or through collections.`,{tab:'explorer',exp:{flag:'noFolder'}},{area:'folders',rows:nf})}
+
+ /* Metadata quality */
+ {const fields=[['description',a=>a.desc],['alt text',a=>a.alt],['tags',a=>a.tags.length],['copyright notice',a=>a.copyNotice]].map(([n,f])=>[n,rate(A,f),f]).sort((a,b)=>a[1]-b[1]);
+  add(fields[0][1]<50?'high':'med',`Weakest metadata field: ${fields[0][0]} (${fields[0][1].toFixed(1)}% filled)`,fields.map(f=>f[0]+' '+f[1].toFixed(1)+'%').join(' · '),{tab:'meta',mview:'overview'},{rows:A.filter(a=>!fields[0][2](a)),cols:'missing'})}
+ {const nb=fl('noBoth');if(nb.length)add('high',`${fmtN(nb.length)} assets have neither tags nor a description`,`${P(nb.length,N)} of the assets in view. They are effectively unsearchable.`,{tab:'meta',mview:'missing'},{rows:nb,cols:'missing'})}
+ if(libs.length>1){const lc=libs.map(l=>{const as=A.filter(a=>a.lib===l);return{l,as,v:avgC(as)}}).filter(x=>x.as.length).sort((a,b)=>a.v-b.v),av=avgC(A),hi=lc[lc.length-1];
+  if(lc.length>1&&lc[0].v<av-10)add('med',`${esc(lc[0].l)} has the least complete metadata (${lc[0].v.toFixed(1)}% vs ${av.toFixed(1)}% across the view)`,`Most complete: ${esc(hi.l)} (${hi.v.toFixed(1)}%). Completeness = average of description, alt text, tags and © notice.`,{tab:'meta',mview:'overview'},{rows:lc[0].as.filter(a=>a.meta<1),cols:'missing'})}
+ {const im=A.filter(a=>/^(jpe?g|png|gif|webp|svg|tiff?|bmp|heic|avif)$/.test(a.ext)),na=im.filter(a=>!a.alt);
+  if(na.length)add(pct(na.length,im.length)>50?'med':'info',`${fmtN(na.length)} images have no alt text (${P(na.length,im.length)} of images)`,'Alt text is needed to use them accessibly on websites and in documents.',{tab:'meta',mview:'overview'},{rows:na,cols:'missing'})}
+
+ /* Duplicates & clutter */
+ const dg=S.viewDups;
+ if(dg.length)add('med',`${fmtN(dg.length)} probable duplicate groups waste ${fmtB(sum(dg,g=>g.size*(g.items.length-1)))}`,`${dg.filter(g=>new Set(g.items.map(a=>a.lib)).size>1).length} groups span more than one library.`,{tab:'dups'},{rows:[...new Set(dg.flatMap(g=>g.items))]});
+ {const gt=fl('genTitle');if(gt.length)add('info',`${fmtN(gt.length)} assets have generic titles`,'Titles like Roche_3580 are not searchable.',{tab:'explorer',exp:{flag:'genTitle'}},{area:'dups',rows:gt})}
+ {const bg=fl('big');if(bg.length){const bs=sum(bg,a=>a.size);
+  add('info',`${fmtN(bg.length)} files are larger than ${fmtN(S.th.mb)} MB`,`Together ${fmtB(bs)} (${P(bs,sum(A,a=>a.size))} of storage). Large originals are slow to download; check whether web-ready versions exist.`,{tab:'explorer',exp:{flag:'big'}},{area:'dups',rows:bg,cols:cl('t','lib','p','e','s','st','dta')})}}
+
+ /* Overview */
+ {const tot=sum(A,a=>a.size),m=new Map();for(const a of A){const k=a.ext||'(none)';let o=m.get(k);if(!o)m.set(k,o={k,n:0,s:0});o.n++;o.s+=a.size}
+  const top=[...m.values()].sort((a,b)=>b.s-a.s)[0],ss=pct(top.s,tot),cs=pct(top.n,N);
+  if(tot&&m.size>1&&ss>=40&&cs<=ss/2)add('info',`${esc(top.k)} files are ${cs.toFixed(1)}% of assets but ${ss.toFixed(1)}% of storage`,`${fmtN(top.n)} files, ${fmtB(top.s)} in total. The biggest lever if storage is a concern.`,{tab:'overview'},{rows:A.filter(a=>(a.ext||'(none)')===top.k),cols:cl('t','lib','p','e','s','dta')})}
+
+ /* Tags & collections */
+ {const ts=tagStats(A),vc=vcl(ts.map(o=>o.tag));
+  if(vc.length){const vs=new Set(vc.flat());add('med',`${fmtN(vc.length)} groups of tags differ only by case, spacing or a plural "s"`,`e.g. ${esc(vc.slice(0,3).map(v=>v.join(' ≠ ')).join(' · '))}. Merging them makes tag searches return complete results.`,{tab:'tags'},{rows:A.filter(a=>a.tags.some(t=>vs.has(t))),cols:cl('t','lib','p','dta','cr')})}
+  const one=ts.filter(o=>o.n===1);if(ts.length>=20&&one.length/ts.length>.3)add('info',`${fmtN(one.length)} tags (${P(one.length,ts.length)}) are used on only one asset`,'Candidates to merge into existing tags or remove.',{tab:'tags'})}
+ {const nc=fl('noColl');if(pct(nc.length,N)>50)add('info',`${P(nc.length,N)} of assets are in no collection`,`${fmtN(nc.length)} assets. They can only be found by browsing folders or by search.`,{tab:'tags'},{rows:nc})}
+ {const cs=new Set();A.forEach(a=>a.collections.forEach(x=>cs.add(x)));const au=[...cs].filter(x=>collType(x)==='Auto "Shared collection"').length;
+  if(au>=5)add('info',`${fmtN(au)} auto-created "Shared collection" entries`,`${P(au,cs.size)} of all collections in view. They are usually created when assets are shared; delete the ones nobody uses.`,{tab:'tags'})}
+
+ /* People & activity */
+ {const sy=c('sys');if(sy/N>.3)add('info',`${fmtN(sy)} assets (${P(sy,N)}) were last modified by a system account`,'Migrations may have reset dates, so staleness is indicative only.',{tab:'people'})}
+ {const cr=topN(cnt(A,a=>a.creator||'(unknown)'),1)[0];if(cr)add('info',`${esc(cr[0])} created ${fmtN(cr[1])} assets (${P(cr[1],N)})`,'Concentration risk, or the owner to ask when planning clean-up.',{tab:'people'})}
+ {const y=365*864e5,r=A.filter(a=>a.created&&(S.asOf-a.created)<y).length,p=A.filter(a=>a.created&&(S.asOf-a.created)>=y&&(S.asOf-a.created)<2*y).length;
+  if(p>=20&&Math.abs(r-p)/p>=.25)add('info',`Uploads ${r>p?'rose':'fell'} ${Math.round(100*Math.abs(r-p)/p)}% in the last 12 months`,`${fmtN(r)} assets created in the 12 months to ${fmtD(S.asOf)}, against ${fmtN(p)} in the 12 months before.`,{tab:'people'})}
+ {const gp=A.filter(either),m=topN(cnt(gp.filter(a=>a.creator),a=>a.creator),1)[0];
+  if(m&&gp.length>=20&&m[1]/gp.length>=.15)add('info',`${esc(m[0])} created ${fmtN(m[1])} of the ${fmtN(gp.length)} assets missing tags or a description`,`${P(m[1],gp.length)} of the gap. A good first person to involve in the clean-up.`,{tab:'meta',mview:'missing'},{area:'people',rows:gp.filter(a=>a.creator===m[0]),cols:'missing'})}
+ {const nc=A.filter(a=>!a.creator);if(pct(nc.length,N)>=1)add('info',`${fmtN(nc.length)} assets have no creator recorded`,`${P(nc.length,N)} of the assets in view. It is unclear whom to ask about them during clean-up.`,{tab:'people'},{rows:nc})}
+
+ /* Naming compliance */
+ const NC=cl('t','lib','p','nm','dta','cr');
+ {const nm=A.filter(a=>a.nm.length);if(nm.length){const rk=Object.keys(NMR).map(k=>[k,A.filter(a=>a.nm.includes(k)).length]).sort((a,b)=>b[1]-a[1])[0],pt=S.re?A.filter(a=>a.nm.includes('pat')).length:0;
+  add('info',`${P(nm.length,N)} of asset titles break at least one naming rule`,`${fmtN(nm.length)} assets. Most common: ${esc(NMR[rk[0]][0])} (${fmtN(rk[1])}). ${S.re?fmtN(pt)+' titles do not match your naming pattern.':'Add your own naming pattern on the Load screen to check your convention too.'}`,{tab:'naming'},{rows:nm,cols:NC})}}
+ {const ch=A.filter(a=>a.nm.includes('chr'));if(ch.length)add('med',`${fmtN(ch.length)} titles contain characters that break file names or URLs`,'Characters such as / : * ? # % can cause failed downloads or broken links when the title is used as a file name.',{tab:'naming'},{rows:ch,cols:NC})}
+ {const fc=RF.filter(n=>NMF.chr[1](n));if(fc.length)add('med',`${fmtN(fc.length)} folder names contain characters that break paths or URLs`,`e.g. ${eg(fc.map(n=>n.lib+' · '+n.path))}.`,{tab:'naming'})}
+
+ /* Taxonomy conformance */
+ {const T=taxoData(A,libs),vc=sum(T.rows,r=>r.vc);
+  if(vc){const r=T.rows.filter(r=>r.vc).sort((a,b)=>b.vc-a.vc)[0];add('med',`${fmtN(vc)} groups of spelling variants in select fields`,`e.g. ${esc(r.lib+' · '+r.f)}: ${esc(r.vcl.slice(0,2).map(v=>v.join(' ≠ ')).join(' · '))}. Variants split filters and facets.`,{tab:'taxo'})}
+  const ms=T.rows.filter(r=>r.single&&r.mi),mi=A.filter(a=>ms.some(r=>a.lib===r.lib&&/[|;]/.test(a.custom[r.f]||'')));
+  if(mi.length){const r=ms.sort((a,b)=>b.mi-a.mi)[0];add('med',`${fmtN(mi.length)} assets have several values in a single-select field`,`Most in ${esc(r.lib+' · '+r.f)} (${fmtN(r.mi)}). Reports and filters will treat the combined value as a separate option.`,{tab:'taxo'},{rows:mi})}
+  const lo=T.rows.filter(r=>r.n>=20).sort((a,b)=>a.fill-b.fill)[0];
+  if(lo&&lo.fill<50)add('med',`Custom field "${esc(lo.f)}" in ${esc(lo.lib)} is filled on only ${lo.fill.toFixed(1)}% of assets`,`${fmtN(lo.n-lo.h)} of ${fmtN(lo.n)} assets leave it empty. Average fill rate across custom fields: ${T.avg.toFixed(1)}%.`,{tab:'taxo'},{rows:A.filter(a=>a.lib===lo.lib&&!a.custom[lo.f])});
+  if(T.hasL&&T.offN){const off=T.tr.filter(x=>x.note.includes('approved')).sort((a,b)=>b.n-a.n),used=A.filter(a=>a.tags.some(T.off));
+   add('med',`${fmtN(T.offN)} tags are not on your approved list`,`Used on ${fmtN(used.length)} assets, e.g. ${eg(off.map(x=>x.t))}.`,{tab:'taxo'},{rows:used,cols:cl('t','lib','p','dta','cr')})}}
+
+ /* Rights & licence risk */
+ {const ea=A.filter(a=>a.rk.includes('expA'));if(ea.length){const ic=ea.filter(a=>a.collections.length).length;
+  add('high',`${fmtN(ea.length)} expired assets are still in an approved status`,`They can still be found and downloaded.${ic?` ${fmtN(ic)} of them are also in a collection, which makes them easy to come across.`:''}`,{tab:'rights'},{rows:ea,cols:RC})}}
+ {const ln=A.filter(a=>a.rk.includes('lic'));if(ln.length)add('med',`${fmtN(ln.length)} licensed assets have no expiry date`,'Without an end date, expiry checks cannot catch them when the licence runs out.',{tab:'rights'},{rows:ln,cols:RC})}
+ {const cp=A.filter(a=>!a.copyNotice),cs=A.filter(a=>!a.copyStatus).length;if(cp.length)add('med',`${P(cp.length,N)} of assets have no copyright notice`,`${fmtN(cp.length)} assets.${cs?` Separately, ${fmtN(cs)} assets have no copyright status.`:''}`,{tab:'rights'},{rows:cp,cols:RC})}
+ {const rs=A.filter(a=>a.restr);if(rs.length)add('info',`${fmtN(rs.length)} assets carry usage restrictions in their licence text`,`e.g. "${esc(short(rs[0].licDesc,90))}". Make sure people see these before they download.`,{tab:'rights'},{rows:rs,cols:RC})}
+ {const mk=d=>d.toISOString().slice(0,7),end=new Date(Date.UTC(S.asOf.getUTCFullYear(),S.asOf.getUTCMonth()+12,1)),up=A.filter(a=>a.expires&&!a.expired&&a.expires<end),m=topN(cnt(up,a=>mk(a.expires)),1)[0];
+  if(m&&m[1]>=10&&m[1]>=up.length/4)add('info',`${fmtN(m[1])} assets expire in ${m[0]}`,`The busiest month of the next 12 (${P(m[1],up.length)} of ${fmtN(up.length)} upcoming expiries). Plan renewals ahead.`,{tab:'rights'},{rows:up.filter(a=>mk(a.expires)===m[0]),cols:RC})}
+
+ /* ROT analysis */
+ {const rot=A.filter(aR);if(rot.length){const n=k=>A.filter(a=>a.rot[k]).length;
+  add(pct(rot.length,N)>40?'high':'med',`${P(rot.length,N)} of assets are redundant, obsolete or trivial`,`${fmtN(rot.length)} assets: redundant ${fmtN(n('R'))} · obsolete ${fmtN(n('O'))} · trivial ${fmtN(n('T'))}. They hold up to ${fmtB(sum(rot,a=>a.size))} of storage.`,{tab:'rot'},{rows:rot,cols:cl('t','lib','p','st','rot','dta','mo')});
+  const fg=groupFolders(A).map(o=>({...o,r:o.as.filter(aR)})),arc=fg.filter(o=>o.as.length>=3&&o.r.length/o.as.length>=.8).sort((a,b)=>b.r.length-a.r.length);
+  if(arc.length)add('med',`${fmtN(arc.length)} folders are recommended for archiving`,`80% or more of the files in each are ROT, e.g. ${eg(arc.map(o=>o.lib+' · '+o.path),2)}.`,{tab:'rot'},{rows:arc.flatMap(o=>o.r)});
+  const wf=fg.filter(o=>o.r.length).sort((a,b)=>b.r.length-a.r.length),t10=sum(wf.slice(0,10),o=>o.r.length);
+  if(wf.length>=20&&t10/rot.length>=.3)add('info',`10 folders hold ${P(t10,rot.length)} of all ROT assets`,`Out of ${fmtN(wf.length)} folders with ROT. Cleaning these first removes the most clutter for the least effort, starting with ${eg(wf.map(o=>o.lib+' · '+o.path),2)}.`,{tab:'rot'},{rows:wf.slice(0,10).flatMap(o=>o.r)})}}
+
+ /* Findability score */
+ {const lo=A.filter(a=>a.fs<50);if(lo.length){const cp=FC.map(c=>[c[0],pct(sum(A,a=>c[2](a)),N*c[1])]).sort((a,b)=>a[1]-b[1])[0];
+  add('med',`${fmtN(lo.length)} assets score below 50 for findability`,`${P(lo.length,N)} of the assets in view. Average score ${(sum(A,a=>a.fs)/N).toFixed(1)}/100. Weakest component: ${esc(cp[0])} (${cp[1].toFixed(0)}% of points earned).`,{tab:'find'},{rows:lo,cols:cl('t','lib','p','fs','fw','dta')})}}
+ if(libs.length>1){const fv=libs.map(l=>{const as=A.filter(a=>a.lib===l);return{l,v:as.length?sum(as,a=>a.fs)/as.length:null}}).filter(x=>x.v!=null).sort((a,b)=>a.v-b.v),hi=fv[fv.length-1];
+  if(fv.length>1&&hi.v-fv[0].v>=15)add('info',`${esc(fv[0].l)} is the hardest library to search (average findability ${fv[0].v.toFixed(1)}/100)`,`Easiest: ${esc(hi.l)} (${hi.v.toFixed(1)}).`,{tab:'find'})}
+ {const th=A.filter(a=>a.desc&&a.desc.length<30);if(th.length>=10)add('info',`${fmtN(th.length)} descriptions are shorter than 30 characters`,`They earn only half the description points in the findability score, e.g. ${eg([...new Set(th.map(a=>'"'+short(a.desc,40)+'"'))])}.`,{tab:'find'},{rows:th,cols:cl('t','lib','p','fs','dta')})}
+
+ /* Workflow ageing */
+ {const sk=A.filter(isStuck);if(sk.length){const st=topN(cnt(sk,a=>a.status||'(none)'),1)[0];
+  add('med',`${fmtN(sk.length)} assets have waited outside an approved status for more than ${fmtN(S.th.stuck)} days`,`Median wait ${fmtN(med(sk.map(a=>a.age)))} days since last change. Status with the most: ${esc(st[0])} (${fmtN(st[1])}). Approve, reject or archive them.`,{tab:'aging'},{rows:sk,cols:cl('t','lib','p','st','age','mo','cr','dta')})}}
+
+ /* Related-asset coverage */
+ const LC=cl('t','lib','p','rel','ri','dta');
+ {const br=A.filter(a=>a.brk.length);if(br.length)add('med',`${fmtN(br.length)} assets link to related assets that are not in the loaded exports`,`${fmtN(sum(br,a=>a.brk.length))} broken links. Either the target was deleted or it is in a library you did not load.`,{tab:'related'},{rows:br,cols:LC})}
+ {const un=A.filter(a=>a.unl);if(un.length)add('info',`${fmtN(un.length)} likely versions of the same asset are not linked to each other`,`Their titles differ only by a number, "copy" or "final". Linking them helps people pick the right version. Related-asset coverage: ${P(A.filter(a=>a.rel.length).length,N)} · one-way links: ${fmtN(A.filter(a=>a.one.length).length)}.`,{tab:'related'},{rows:un,cols:LC})}
+
+ /* Audit pack & backlog */
+ {const sc=scoreOf(A);if(sc){const o=Math.round(sc.o),wi=sc.p.indexOf(Math.min(...sc.p)),ls=libs.map(l=>[l,scoreOf(A.filter(a=>a.lib===l))]).filter(x=>x[1]).sort((a,b)=>a[1].o-b[1].o);
+  add(o<50?'high':o<80?'med':'info',`Overall governance score: ${o}/100`,`Weakest dimension: ${PN[wi]} (${Math.round(sc.p[wi])}).${ls.length>1?` Lowest-scoring library: ${esc(ls[0][0])} (${Math.round(ls[0][1].o)}).`:''}`,{tab:'audit'})}}
+ {const p1=backlog(A).filter(x=>x.p==='P1');if(p1.length){const b=p1.slice().sort((a,b)=>b.n-a.n)[0];
+  add('high',`${fmtN(p1.length)} priority-1 actions in the backlog`,`They cover ${fmtN(sum(p1,x=>x.n))} asset-level findings. Largest: ${esc(b.txt)} (${fmtN(b.n)} assets; ${esc(b.owner)} created the most of them).`,{tab:'audit'})}}
+
+ /* Across reports */
+ {const sr=[];for(const g of dg){const keep=g.items.filter(a=>a.ok&&!a.bad&&!a.badFolder&&!a.expired);if(keep.length)for(const a of g.items)if(!keep.includes(a)&&(a.bad||a.badFolder||a.expired))sr.push(a)}
+  if(sr.length)add('med',`${fmtN(sr.length)} duplicate copies look safe to remove`,`Each has another copy in its group that is approved and filed normally, while this copy is in a cleanup status, an old / test / archive folder or expired. Removing them frees ${fmtB(sum(sr,a=>a.size))}. Verify before deleting, especially groups matched on file size only.`,toEx('duplicate copies that look safe to remove',sr),{area:'cross',rows:sr})}
+ {const pb=a=>(a.rl===3)+!!aR(a)+(a.fs<50)+(a.nm.length>0)+isStuck(a),mp=A.filter(a=>pb(a)>=3);
+  if(mp.length)add('med',`${fmtN(mp.length)} assets have problems in three or more reports`,`Counting high rights risk, ROT, findability below 50, naming issues and a stuck workflow. ${P(mp.length,N)} of the assets in view; fixing or retiring these clears several reports at once.`,toEx('problems in three or more reports',mp),{area:'cross',rows:mp,cols:cl('t','lib','p','st','rk','rot','fs','dta')})}
+ {const ua=A.filter(a=>a.ok&&!a.tags.length&&!a.desc);if(ua.length)add('med',`${fmtN(ua.length)} approved assets have neither tags nor a description`,`Released for use but very hard to find: ${P(ua.length,A.filter(a=>a.ok).length)} of approved assets. These are the most valuable ones to enrich.`,toEx('approved assets with no tags or description',ua),{area:'cross',rows:ua,cols:'missing'})}
+ return out}
+PAGES.insights=()=>{const all=makeInsights(),f=S.insF,ao=k=>k==='cross'?-1:TABS.findIndex(t=>t[0]===k),so={high:0,med:1,info:2};
+ all.sort((a,b)=>so[a.sev]-so[b.sev]||ao(a.area)-ao(b.area));
+ if(f.area&&!all.some(x=>x.area===f.area))f.area='';
+ const I=all.filter(x=>(!f.sev||x.sev===f.sev)&&(!f.area||x.area===f.area)),n=s=>all.filter(x=>x.sev===s).length,am=cnt(all,x=>x.area);
+ const cardH=(x,i)=>`<div class="card ins"><p class="mut" style="margin:0">${esc(insArea(x.area))}</p><h3><span class="dot ${x.sev}"></span>${x.t}</h3><p>${x.x}</p><div class="bar" style="margin:6px 0 0"><button class="btn s" data-ins="${i}">Investigate →</button>${x.rows?`<button class="btn s" data-insl="${i}">List ${fmtN(x.rows.length)} assets</button>`:''}</div></div>`;
+ const sec=sv=>{const xs=I.map((x,i)=>[x,i]).filter(([x])=>x.sev===sv);return xs.length?`<h2 class="insh"><span class="dot ${sv}"></span>${SEVN[sv]} · ${xs.length}</h2><div class="g2">${xs.map(([x,i])=>cardH(x,i)).join('')}</div>`:''};
+ $('#view').innerHTML=all.length?`<div class="bar noprint">${[['','All',all.length],['high','High',n('high')],['med','Medium',n('med')],['info','Info',n('info')]].map(([k,l,c])=>`<span class="chip ${f.sev===k?'on':''}" data-insf-sev="${k}">${l} · ${c}</span>`).join('')}
+ <select data-insf-area><option value="">All reports</option>${[...am.entries()].sort((a,b)=>ao(a[0])-ao(b[0])).map(([k,c])=>`<option value="${k}" ${f.area===k?'selected':''}>${esc(insArea(k))} (${c})</option>`).join('')}</select>
+ <button class="btn s" id="ins_dl">Download findings (CSV)</button></div>
+ <p class="mut">${fmtN(all.length)} findings for the ${fmtN(cur().length)} assets in view, drawn from every report. They recalculate when you change the library, folder or status filter.</p>
+ ${['high','med','info'].map(sec).join('')||'<p class="mut">No findings match this filter.</p>'}`:'<div class="card"><p class="mut" style="margin:0">No findings for the current view.</p></div>';
+ S._ins=I};
+
+/* PAGE: structure */
+function buildTree(A,metric,withLib,off){const root={c:new Map(),own:0};
+ for(const a of A){let n=root;const ps0=a.parts.slice(off),ps=ps0.length?ps0:['(files directly here)'];
+  for(const p of(withLib?[a.lib,...ps]:ps)){let c=n.c.get(p);if(!c)n.c.set(p,c={c:new Map(),own:0});n=c}n.own+=metric==='size'?a.size:1}
+ const conv=m=>[...m.entries()].map(([name,n])=>{const ch=conv(n.c);if(!ch.length)return{name,value:n.own};if(n.own)ch.push({name:'(files directly here)',value:n.own});return{name,children:ch}});return conv(root.c)}
+PAGES.structure=()=>{const s=S.st,sc=S.scope,lib=sc?sc.lib:s.lib,off=sc?sc.parts.length:0;
+ $('#view').innerHTML=`<div class="card"><div class="bar"><select id="st_lib" ${sc?'disabled title="Controlled by the folder filter in the header"':''}><option value="">All libraries</option>${activeLibs().map(l=>`<option ${lib===l?'selected':''}>${esc(l)}</option>`).join('')}</select>
+ <select id="st_metric"><option value="count" ${s.metric==='count'?'selected':''}>Size by asset count</option><option value="size" ${s.metric==='size'?'selected':''}>Size by storage</option></select>
+ <select id="st_view"><option value="treemap" ${s.view==='treemap'?'selected':''}>Treemap (click to drill)</option><option value="sunburst" ${s.view==='sunburst'?'selected':''}>Sunburst</option></select>
+ ${sc?`<span class="mut" style="margin:0">Starting at: ${esc([sc.lib,...sc.parts].join(' › '))}</span>`:''}</div><div id="st_c" style="height:640px"></div></div>
+ <div class="card"><h3>Folders at this level</h3><p class="mut">Click a row to open that folder in the Asset explorer.</p><div id="st_tb"></div></div>`;
+ const A=cur().filter(a=>!lib||a.lib===lib),tree=buildTree(A,s.metric,!lib,off),fv=v=>s.metric==='size'?fmtB(v):fmtN(v);
+ const tip={formatter:i=>`${esc(i.treePathInfo.map(p=>p.name).filter(Boolean).join(' / '))}<br><b>${fv(i.value)}</b>`};
+ ec('st_c',s.view==='treemap'?{tooltip:tip,series:[{type:'treemap',data:tree,color:DARK,leafDepth:2,roam:false,breadcrumb:{show:true,itemStyle:{color:C.navy,textStyle:{color:'#fff'}}},label:{show:true,formatter:'{b}',color:'#fff'},upperLabel:{show:true,height:22,color:'#fff'},itemStyle:{borderColor:'#fff',borderWidth:1,gapWidth:1},levels:[{itemStyle:{borderWidth:0,gapWidth:4}},{colorSaturation:[.6,.9],itemStyle:{gapWidth:2}},{colorSaturation:[.5,.8]}]}]}
+  :{tooltip:tip,series:[{type:'sunburst',data:tree,color:DARK,radius:['6%','96%'],label:{rotate:'radial',minAngle:6,color:'#fff',fontSize:10},itemStyle:{borderColor:'#fff',borderWidth:1},emphasis:{focus:'ancestor'},levels:[{},{r0:'6%',r:'28%'},{r0:'28%',r:'52%'},{r0:'52%',r:'72%'},{r0:'72%',r:'96%',label:{show:false}}]}]});
+ const g=new Map();for(const a of A){const own=a.parts.length<=off,top=own?'(files directly here)':a.parts[off],pp=a.parts.slice(0,own?off:off+1),k=(lib?'':a.lib+' · ')+top;
+  let o=g.get(k);if(!o)g.set(k,o={name:k,lib:a.lib,parts:pp,n:0,size:0,depth:0});o.n++;o.size+=a.size;o.depth=Math.max(o.depth,a.parts.length)}
+ regTable('st_tb',[{k:'name',l:'Folder',v:r=>r.name},{k:'n',l:'Assets',v:r=>r.n,f:r=>fmtN(r.n),num:1},{k:'size',l:'Storage',v:r=>r.size,f:r=>fmtB(r.size),num:1,x:r=>r.size},{k:'depth',l:'Max depth',v:r=>r.depth,num:1}],[...g.values()],{k:'n',click:r=>go({tab:'explorer',scope:{lib:r.lib,parts:r.parts}})})};
+
+/* PAGE: folder audit */
+function faRows(){const q=S.fa.q.toLowerCase(),i=S.fa.issue;return curFolders().filter(n=>(!i||n.issues.includes(i))&&(!q||(n.lib+' '+n.path).toLowerCase().includes(q)))}
+function drawFolders(){const rows=faRows();
+ regTable('fa_tb',[{k:'lib',l:'Library',v:n=>n.lib},{k:'path',l:'Folder',v:n=>n.path},{k:'depth',l:'Depth',v:n=>n.depth,num:1},{k:'direct',l:'Files here',v:n=>n.direct,num:1,f:n=>fmtN(n.direct)},{k:'total',l:'Incl. subfolders',v:n=>n.total,num:1,f:n=>fmtN(n.total)},
+  {k:'size',l:'Storage',v:n=>n.size,f:n=>fmtB(n.size),x:n=>n.size,num:1},{k:'compl',l:'Metadata %',v:n=>n.compl==null?-1:m1(100*n.compl),num:1,f:n=>n.compl==null?'–':(100*n.compl).toFixed(1)+'%'},
+  {k:'health',l:'Health',v:n=>n.health,num:1,f:n=>hb(n.health)},{k:'iss',l:'Issues',v:n=>n.issues.map(i=>ISS[i][0]).join('; '),f:issBadges},{k:'act',l:'Suggested action',v:n=>n.action}],rows,
+  {k:'health',dir:1,file:'folder-cleanup-worklist.csv',click:n=>go({tab:'explorer',scope:{lib:n.lib,parts:n.path.split(' / ')}})});
+ const el=$('#fa_n');if(el)el.textContent=fmtN(rows.length)+' folders'}
+PAGES.folders=()=>{const F=curFolders(),FD=F.filter(n=>n.direct),ic=Object.keys(ISS).map(k=>[k,F.filter(n=>n.issues.includes(k)).length]);
+ $('#view').innerHTML=`<div class="g2">${card('Issues across folders','fa1',320,'Click a bar to filter the table')}${card('Health score distribution','fa2',320,'Red <50, yellow 50–79, green ≥80. Scores are calculated on the whole library, not the status filter.')}</div>
+ ${card('Folder map — files vs health','fa3',420,'Each bubble is a folder. Bubble size = storage, colour = health. Click a bubble to open the folder.')}
+ <div class="card"><h3>Folder worklist <span id="fa_n" class="mut"></span></h3><div class="bar"><input id="fa_q" placeholder="Search folder path…" value="${esc(S.fa.q)}" style="width:260px"><select id="fa_i"><option value="">All issues</option>${Object.keys(ISS).map(k=>`<option value="${k}" ${S.fa.issue===k?'selected':''}>${ISS[k][0]}</option>`).join('')}</select></div>
+ <p class="mut">Click a row to open the folder. Health = 100 − metadata gaps (max 35) − cleanup-status share (max 25) − stale 10 − naming 10 − tiny 8 − deep 7 − pass-through 5 − near-duplicate 5 − oversized 5.</p><div id="fa_tb"></div></div>`;
+ const c1=simpleBar('fa1',ic.map(([k,n])=>[ISS[k][0],n]),{h:true,lw:230});c1&&c1.on('click',p=>{const k=Object.keys(ISS).find(k=>ISS[k][0]===p.name);S.fa.issue=k;$('#fa_i').value=k;drawFolders()});
+ const bins=Array.from({length:10},(_,i)=>[i*10+'–'+(i*10+9),0,i<5?C.sr:i<8?C.sy:C.sg]);FD.forEach(n=>bins[Math.min(9,Math.floor(n.health/10))][1]++);simpleBar('fa2',bins);
+ const c3=ec('fa3',{tooltip:{formatter:p=>`${esc(p.data.n.lib)} · ${esc(p.data.n.path)}<br>${fmtN(p.value[0])} files · health ${p.value[1]} · ${fmtB(p.value[2])}`},grid:{left:10,right:30,top:20,bottom:30,containLabel:true},
+  xAxis:{type:'log',name:'Files here',nameLocation:'middle',nameGap:26,...AX()},yAxis:{type:'value',min:0,max:100,name:'Health',...AX()},
+  series:[{type:'scatter',symbolSize:d=>clamp(Math.sqrt(d[2]/1048576)*2,6,50),data:FD.map(n=>({value:[n.direct,n.health,n.size],n,itemStyle:{color:hcol(n.health),opacity:.75}}))}]});
+ c3&&c3.on('click',p=>{const n=p.data.n;go({tab:'explorer',scope:{lib:n.lib,parts:n.path.split(' / ')}})});drawFolders()};
+
+/* PAGE: metadata quality */
+const TDN='Tags AND description';
+const MF=[['Description',a=>a.desc],['Alt text',a=>a.alt],['Tags',a=>a.tags.length],[TDN,a=>a.desc&&a.tags.length],['© notice',a=>a.copyNotice],['Collections',a=>a.collections.length],['Licence',a=>a.license],['Folder',a=>a.folder]];
+const MFD=Object.fromEntries(MF);
+const MFP={'Description':'have a description','Alt text':'have alt text','Tags':'have at least one tag',[TDN]:'have both tags and a description','© notice':'have a copyright notice','Collections':'are in at least one collection','Licence':'have a licence applied','Folder':'are filed in a folder'};
+const mkey=n=>'Missing: '+(n===TDN?'Tags or description':n),mlab=n=>n===TDN?'tags or description missing':n+' missing';
+const noD=a=>!a.desc,noT=a=>!a.tags.length,either=a=>noD(a)||noT(a),both=a=>noD(a)&&noT(a);
+const kind=a=>both(a)?'Missing both':noT(a)?'Missing tags only':noD(a)?'Missing description only':'Complete';
+const KINDS=[['Missing both',C.sr],['Missing tags only',C.orange],['Missing description only',C.lorange],['Complete',C.sg]];
+const MISSFN={};MF.forEach(([n,f])=>MISSFN[mkey(n)]=a=>!f(a));KINDS.forEach(([k])=>MISSFN[k]=a=>kind(a)===k);
+MISSFN['No tags']=noT;MISSFN['No description']=noD;MISSFN['Missing tags or description']=either;MISSFN['Incomplete core metadata']=a=>a.meta<1;
+function gapChart(id,groups,o={}){const ks=o.skipComplete?KINDS.slice(0,3):KINDS;
+ return stk(id,groups.map(g=>g[0]),ks.map(([k,col])=>({n:k,c:col,d:groups.map(g=>{const c=g[1].filter(a=>kind(a)===k).length;return o.pct?pct(c,g[1].length):c})})),{h:o.h,rot:o.rot,
+  on:(cat,sn)=>{const g=groups.find(x=>x[0]===cat);if(g)openDrawer({title:sn+' — '+cat,rows:g[1].filter(a=>kind(a)===sn),ex:g[2]?{...g[2],exp:{...(g[2].exp||{}),miss:sn}}:null})}})}
+const metaSwitch=v=>`<div class="subnav"><button class="btn ${v==='overview'?'pri':''}" data-mview="overview">Completeness overview</button><button class="btn ${v==='missing'?'pri':''}" data-mview="missing">Missing tags &amp; description</button></div>`;
+function missKpis(A,mv){const n=A.length;
+ return [['Missing both','no tags and no description',both,'r','both'],['No tags','',noT,'o','tags'],['No description','',noD,'o','desc'],['Missing either','tags, description or both',either,'o','either'],['Has tags AND description','',a=>!either(a),'g',null]].map(([l,s,p,c,m])=>{const x=A.filter(p).length;
+  return kp(l,fmtN(x),P(x,n)+' of assets'+(s?' · '+s:''),x?c:'g','m_'+l,()=>{if(mv&&m){S.mm.mode=m;render();setTimeout(()=>{const e=$('#mm_tb');e&&e.scrollIntoView({behavior:'smooth'})},80)}else lst(l,s||'Assets in this group',A,p,{cols:'missing'})},x)}).join('')}
+function reconRows(A,libs){const mk=(name,as,lib)=>({name,lib,n:as.length,b:as.filter(both).length,t:as.filter(a=>noT(a)&&!noD(a)).length,d:as.filter(a=>noD(a)&&!noT(a)).length,c:as.filter(a=>!either(a)).length});return[mk('All libraries in view',A,''),...libs.map(l=>mk(l,A.filter(a=>a.lib===l),l))]}
+function checkCard(A,libs,FD){const n=A.length,R=reconRows(A,libs),tot=R[0],lr=R.slice(1),cT=A.filter(noT).length,cD=A.filter(noD).length,cE=A.filter(either).length;
+ const dupA=new Set(S.viewDups.flatMap(g=>g.items)).size,dupF=A.filter(a=>a.flags.includes('dupe')).length,fd=sum(FD,f=>f.direct);
+ const ck=[['The four groups add up to the assets in view',tot.b+tot.t+tot.d+tot.c===n,`${fmtN(tot.b)} + ${fmtN(tot.t)} + ${fmtN(tot.d)} + ${fmtN(tot.c)} = ${fmtN(n)}`],['No tags = Missing both + No tags only',cT===tot.b+tot.t,`${fmtN(cT)} = ${fmtN(tot.b)} + ${fmtN(tot.t)}`],
+  ['No description = Missing both + No description only',cD===tot.b+tot.d,`${fmtN(cD)} = ${fmtN(tot.b)} + ${fmtN(tot.d)}`],['Missing either = everything except "Has both"',cE===n-tot.c,`${fmtN(cE)} = ${fmtN(n)} − ${fmtN(tot.c)}`],
+  ['Library rows add up to the assets in view',sum(lr,r=>r.n)===n,`${fmtN(sum(lr,r=>r.n))} vs ${fmtN(n)}`],['Files per folder add up to the assets in view',fd===n,`${fmtN(fd)} vs ${fmtN(n)}`],
+  ['"Possible duplicate" flag = assets on the Duplicates page',dupF===dupA,`${fmtN(dupF)} vs ${fmtN(dupA)}`]],bad=ck.filter(c=>!c[1]).length;
+ return `<div class="card"><h3>Consistency check (automatic)</h3><p class="mut">${bad?`<b style="color:${C.sr}">${bad} of ${ck.length} checks failed</b>: tell me which row so I can trace it.`:`<b style="color:${C.sg}">All ${ck.length} checks passed</b> for the assets in view.`}</p><div class="tw"><table><tbody>${ck.map(c=>`<tr><td style="width:28px"><b style="color:${c[1]?C.sg:C.sr}">${c[1]?'✔':'✖'}</b></td><td>${esc(c[0])}</td><td style="color:${C.g2}">${esc(c[2])}</td></tr>`).join('')}</tbody></table></div></div>`}
+PAGES.meta=()=>{const A=cur(),libs=activeLibs(),FD=curFolders().filter(n=>n.direct);
+ if(S.mm.view==='missing'){
+  $('#view').innerHTML=`${metaSwitch('missing')}<div class="kpis">${missKpis(A,true)}</div>
+  <div class="card"><h3>Assets missing tags and/or description</h3><p class="mut">The KPI cards above set this filter. Sort, export, or click a row to open the asset.</p><div class="bar"><select id="mm_mode"><option value="both">Missing both</option><option value="either">Missing either</option><option value="tags">No tags</option><option value="desc">No description</option></select><span id="mm_n" class="mut" style="margin:0"></span></div><div id="mm_tb"></div></div>
+  <div class="card"><h3>Folders with tag / description gaps</h3><p class="mut">"% affected" = missing tags and/or description, as a share of the files directly in the folder.</p><div id="mm_ft"></div></div>${card('Creators with the most affected assets (top 12)','mm3',420,'Click a segment to list the assets.')}${checkCard(A,libs,FD)}`;
+  const fRows=FD.map(n=>({n,t:n.assets.filter(noT).length,d:n.assets.filter(noD).length,b:n.assets.filter(both).length,e:n.assets.filter(either).length})).filter(r=>r.e>0);
+  const byC=new Map();A.forEach(a=>{const k=a.creator||'(unknown)';(byC.get(k)||byC.set(k,[]).get(k)).push(a)});
+  gapChart('mm3',[...byC.entries()].sort((x,y)=>y[1].filter(either).length-x[1].filter(either).length).slice(0,12).map(([k,as])=>[k,as.filter(either),k==='(unknown)'?null:{exp:{q:k}}]),{h:true,skipComplete:true});
+  const sel=$('#mm_mode');sel.value=S.mm.mode;
+  const draw=()=>{const m=S.mm.mode,rows=A.filter(a=>m==='both'?both(a):m==='tags'?noT(a):m==='desc'?noD(a):either(a));
+   regTable('mm_tb',[AC.lib,AC.t,AC.p,AC.e,{k:'g',l:'Gap',v:a=>kind(a),f:a=>`<span class="b ${both(a)?'r':'o'}">${kind(a)}</span>`},AC.de,AC.tg,AC.al,AC.cr,AC.cd,AC.st,AC.id],rows,{k:'p',dir:1,limit:200,file:'assets-missing-tags-or-description.csv',click:a=>go({tab:'explorer',exp:{q:a.id}})});
+   $('#mm_n').textContent=fmtN(rows.length)+' assets · '+P(rows.length,A.length)+' of assets in view'};
+  sel.onchange=e=>{S.mm.mode=e.target.value;draw()};draw();
+  regTable('mm_ft',[{k:'lib',l:'Library',v:r=>r.n.lib},{k:'p',l:'Folder',v:r=>r.n.path},{k:'f',l:'Files here',v:r=>r.n.direct,num:1},{k:'t',l:'No tags',v:r=>r.t,num:1},{k:'d',l:'No description',v:r=>r.d,num:1},{k:'b',l:'Missing both',v:r=>r.b,num:1},{k:'e',l:'Affected',v:r=>r.e,num:1},{k:'pc',l:'% affected',v:r=>m1(100*r.e/r.n.direct),num:1,f:r=>P(r.e,r.n.direct)}],
+   fRows,{k:'b',limit:50,file:'folders-with-tag-description-gaps.csv',click:r=>go({tab:'explorer',scope:{lib:r.n.lib,parts:r.n.path.split(' / ')},exp:{flag:r.b?'noBoth':r.t?'noTags':'noDesc'}})});return}
+ const R=reconRows(A,libs),tx=[];
+ S.libs.filter(l=>libs.includes(l.name)).forEach(l=>{const as=A.filter(a=>a.lib===l.name);l.custom.forEach(f=>tx.push({lib:l.name,f,n:as.length,h:as.filter(a=>a.custom[f]).length}))});
+ $('#view').innerHTML=`${metaSwitch('overview')}<p class="tip">Click any KPI card, bar or heatmap cell to list the assets behind it. Hover a heatmap cell to see exactly what the percentage is of.</p>
+ <div class="kpis">${missKpis(A,false)}${kp('Avg. completeness',avgC(A).toFixed(1)+'%','avg of desc · alt · tags · ©','','m_core',()=>lst('Incomplete core metadata','Missing description, alt text, tags or ©',A,a=>a.meta<1,{cols:'missing'}),A.length)}</div>
+ ${card('Tag &amp; description gaps by library (% of assets)','mo1',380,'Red = neither · orange = no tags only · light orange = no description only · green = both present. Click a segment.')}
+ <div class="card"><h3>How the numbers fit together</h3><p class="mut">Every asset is in exactly one of four groups, so they add up to Assets. No tags = Missing both + No tags only · No description = Missing both + No description only · "${TDN}" % in the heatmap = Has both ÷ Assets.</p><div id="rc_tb"></div></div>
+ ${card('Completeness by library and field (%)','m1',Math.max(260,libs.length*44+120),'Each cell = % of that library\'s assets that have the field. Hover for counts; click to list assets missing it.')}
+ ${card('Completeness by folder (30 biggest)','m2',760,'Each cell = % of the files directly in that folder that have the field.')}
+ ${card('Average metadata completeness by creator (15 biggest creators)','m3',460,'Average of description · alt text · tags · © notice. The number in brackets is the creator\'s asset count. Click a bar to list their assets.')}
+ <div class="card"><h3>Custom (taxonomy) field fill rate</h3><p class="mut">How often each custom field of each library is filled in. Click a row to list the assets where it is empty.</p><div id="tx_tb"></div></div>${checkCard(A,libs,FD)}`;
+ gapChart('mo1',libs.map(l=>[l,A.filter(a=>a.lib===l),{exp:{lib:l}}]),{pct:true,rot:20});
+ const ok=r=>r.b+r.t+r.d+r.c===r.n,cell=(x,n)=>`${fmtN(x)} <span class="mut" style="margin:0">(${P(x,n)})</span>`;
+ regTable('rc_tb',[{k:'name',l:'Library',v:r=>r.name},{k:'n',l:'Assets',v:r=>r.n,num:1,f:r=>fmtN(r.n)},{k:'b',l:'Missing both',v:r=>r.b,num:1,f:r=>cell(r.b,r.n)},{k:'t',l:'No tags only',v:r=>r.t,num:1,f:r=>cell(r.t,r.n)},{k:'d',l:'No description only',v:r=>r.d,num:1,f:r=>cell(r.d,r.n)},{k:'c',l:'Has both',v:r=>r.c,num:1,f:r=>cell(r.c,r.n)},{k:'ok',l:'Adds up?',v:r=>ok(r)?1:0,f:r=>`<b style="color:${ok(r)?C.sg:C.sr}">${ok(r)?'✔':'✖'}</b>`}],R,{k:'n',limit:50,file:'metadata-reconciliation.csv',
+  click:r=>openDrawer({title:r.name+' — missing tags and/or description',rows:A.filter(a=>(!r.lib||a.lib===r.lib)&&either(a)),ex:{exp:{...(r.lib?{lib:r.lib}:{}),miss:'Missing tags or description'}}})});
+ const d=[];libs.forEach((l,y)=>{const a=A.filter(x=>x.lib===l);MF.forEach(([n,f],x)=>d.push([x,y,rate(a,f),a.filter(f).length,a.length]))});
+ heat('m1',MF.map(m=>m[0]),libs,d,{rot:20,tip:(xi,yi,pc,have,tot)=>`<b>${esc(libs[yi])}</b> · ${esc(MF[xi][0])}<br><b>${pc.toFixed(1)}%</b> of ${esc(libs[yi])} assets ${esc(MFP[MF[xi][0]])}<br>${fmtN(have)} of ${fmtN(tot)} assets · ${fmtN(tot-have)} missing (${P(tot-have,tot)})`,
+  onClick:(xi,yi)=>{const n=MF[xi][0],f=MF[xi][1],lib=libs[yi];openDrawer({title:`${lib} — ${mlab(n)}`,field:n,rows:A.filter(a=>a.lib===lib&&!f(a)),ex:{exp:{lib,miss:mkey(n)}}})}});
+ const FF=FD.slice().sort((a,b)=>b.direct-a.direct).slice(0,30),MFF=MF.slice(0,6),d2=[];FF.forEach((n,y)=>MFF.forEach(([_,f],x)=>d2.push([x,y,rate(n.assets,f),n.assets.filter(f).length,n.assets.length])));
+ heat('m2',MFF.map(m=>m[0]),FF.map(n=>n.lib+' · '+n.path),d2,{tip:(xi,yi,pc,have,tot)=>`<b>${esc(FF[yi].lib)} · ${esc(FF[yi].path)}</b><br>${esc(MFF[xi][0])}: <b>${pc.toFixed(1)}%</b> of the files directly in this folder ${esc(MFP[MFF[xi][0]])}<br>${fmtN(have)} of ${fmtN(tot)} files · ${fmtN(tot-have)} missing`,
+  onClick:(xi,yi)=>{const n=MFF[xi][0],f=MFF[xi][1],fo=FF[yi];openDrawer({title:`${fo.lib} · ${fo.path} — ${mlab(n)}`,field:n,rows:fo.assets.filter(a=>!f(a)),ex:{scope:{lib:fo.lib,parts:fo.path.split(' / ')},exp:{direct:'1',miss:mkey(n)}}})}});
+ const cm=new Map();A.forEach(a=>{const k=a.creator||'(unknown)';let o=cm.get(k);if(!o)cm.set(k,o={k,n:0,m:0});o.n++;o.m+=a.meta});
+ const cr=[...cm.values()].sort((x,y)=>y.n-x.n).slice(0,15);
+ simpleBar('m3',cr.map(o=>[o.k+' ('+fmtN(o.n)+')',m1(100*o.m/o.n),hcol(100*o.m/o.n)]),{h:true,lw:240,onClick:(nm,v,p)=>{const o=cr[p.dataIndex];if(o)lst('Creator: '+o.k,'Assets by this creator',A,a=>(a.creator||'(unknown)')===o.k)}});
+ regTable('tx_tb',[{k:'lib',l:'Library',v:r=>r.lib},{k:'f',l:'Custom field',v:r=>r.f},{k:'n',l:'Assets',v:r=>r.n,num:1},{k:'h',l:'Filled',v:r=>r.h,num:1},{k:'p',l:'Fill rate',v:r=>m1(pct(r.h,r.n)),num:1,f:r=>hb(Math.round(pct(r.h,r.n)))}],tx,{k:'p',dir:1,limit:80,file:'custom-field-fill-rate.csv',
+  click:r=>lst(`${r.lib} — ${r.f} empty`,'Assets where this custom field is empty',A,a=>a.lib===r.lib&&!a.custom[r.f])})};
+
+/* PAGE: lifecycle */
+PAGES.life=()=>{const A=cur(),asOf=S.asOf,n=f=>A.filter(a=>a.flags.includes(f)).length;
+ const L=(key,name,sub,pred,flag,sk)=>{const rows=A.filter(pred);return K(key,()=>listA(name,sub,rows,{cols:'life',ex:flag?{exp:{flag}}:{exp:{miss:reg(name,pred)}},sortK:sk||'p',sortDir:1}),rows.length)};
+ $('#view').innerHTML=`<div class="kpis">
+ ${kpi('Cleanup status',fmtN(n('badStatus')),'workflow status only (to be deleted / on hold…)','r',L('lf1','Cleanup status','Workflow status such as To be deleted, On hold, Rejected',a=>a.flags.includes('badStatus'),'badStatus'))}
+ ${kpi('Expired',fmtN(n('expired')),'expiry date before the as-of date','r',L('lf2','Expired assets','Soonest first',a=>a.flags.includes('expired'),'expired','ex'))}
+ ${kpi('Expiring ≤90d',fmtN(n('expSoon')),'','o',L('lf3','Expiring within 90 days','Soonest first',a=>a.flags.includes('expSoon'),'expSoon','ex'))}
+ ${kpi('Licensed, no expiry',fmtN(A.filter(a=>a.license&&!a.expires).length),'licence but no end date','o',L('lf4','Licensed, no expiry date','Licence applied but no expiry',a=>a.license&&!a.expires))}
+ ${kpi('No © notice',fmtN(n('noCopy')),'','o',L('lf5','No copyright notice','',a=>!a.copyNotice,'noCopy'))}
+ ${kpi('Stale',fmtN(n('stale')),'> '+S.th.stale+' years untouched','',L('lf6','Stale assets','Oldest first. Migrations may have reset dates.',a=>a.flags.includes('stale'),'stale','mo'))}</div>
+ <div class="g2">${card('Workflow status by library (%)','l1')}${card('Copyright status by library (%)','l2')}</div>
+ <div class="g2">${card('Expiry window','l3')}${card('Time since last modification','l4',320,'The last bucket uses the same rule as the Stale card.')}</div>
+ <div class="g2">${card('Copyright year (from the notice)','l5',320,'First four-digit year found in the copyright notice.')}${card('Licences applied (top 12)','l6')}</div>
+ <div class="card"><h3>Folders with most cleanup-status assets</h3><p class="mut">Click a row to open the folder.</p><div id="l7"></div></div>`;
+ stackBy('l1',A,a=>a.lib,a=>a.status||'(none)',{pct:true,top:8});stackBy('l2',A,a=>a.lib,a=>a.copyStatus||'(none)',{pct:true});
+ const eo=['Expired','≤90 days','≤1 year','>1 year','No expiry'],eb=a=>!a.expires?'No expiry':a.expires<asOf?'Expired':a.expires<+asOf+90*864e5?'≤90 days':a.expires<+asOf+365*864e5?'≤1 year':'>1 year';
+ stackBy('l3',A,eb,a=>a.lib,{catSort:(a,b)=>eo.indexOf(a)-eo.indexOf(b)});
+ const stl='Stale (>'+S.th.stale+' y)',nst='12+ months, not yet stale',ao=['<6 months','6–12 months',nst,stl,'unknown'];
+ stackBy('l4',A,a=>{if(!a.modified)return'unknown';if(a.flags.includes('stale'))return stl;const m=(asOf-a.modified)/2629800000;return m<6?'<6 months':m<12?'6–12 months':nst},a=>a.lib,{catSort:(a,b)=>ao.indexOf(a)-ao.indexOf(b)});
+ stackBy('l5',A,a=>{const m=a.copyNotice.match(/(?:19|20)\d{2}/);return m?m[0]:null},a=>a.lib);
+ simpleBar('l6',topN(cnt(A.flatMap(a=>splitList(a.license,/\|/)),x=>x),12),{h:true,lw:260});
+ regTable('l7',[{k:'lib',l:'Library',v:n=>n.lib},{k:'path',l:'Folder',v:n=>n.path},{k:'bad',l:'Cleanup assets',v:n=>n.badCount,num:1},{k:'sh',l:'Share',v:n=>m1(100*n.badShare),f:n=>(100*n.badShare).toFixed(1)+'%',num:1}],curFolders().filter(n=>n.badCount>0),{k:'bad',limit:50,click:n=>go({tab:'explorer',scope:{lib:n.lib,parts:n.path.split(' / ')},exp:{flag:'badStatus'}})})};
+
+/* PAGE: duplicates & clutter */
+PAGES.dups=()=>{const A=cur(),G=S.viewDups,waste=sum(G,g=>g.size*(g.items.length-1)),AI=[...new Set(G.flatMap(g=>g.items))],XG=G.filter(g=>new Set(g.items.map(a=>a.lib)).size>1),GT=A.filter(a=>a.flags.includes('genTitle'));
+ const hay=g=>g.items.map(a=>a.title+' '+a.lib+' '+a.path).join(' ').toLowerCase();
+ const listG=(title,sub,rows)=>openDrawer({title,sub,rows,cols:'groups',unit:'groups',total:0,sortK:'w',sortDir:-1,hay,click:g=>openDrawer({title:'Copies — '+g.items[0].title,sub:g.tier+' · '+fmtB(g.size)+' each',rows:g.items,cols:'general',ex:{exp:{q:g.items[0].title}},prev:DR})});
+ $('#view').innerHTML=`<div class="kpis">
+ ${kp('Duplicate groups',fmtN(G.length),fmtN(G.filter(g=>g.tier==='Same name + size').length)+' same name + size','o','d1',()=>listG('Duplicate groups','Click a group to see its copies',G),G.length)}
+ ${kp('Assets involved',fmtN(AI.length),P(AI.length,A.length)+' of assets','','d2',()=>{const s=new Set(AI);lst('Assets in duplicate groups','Every copy in the groups',A,a=>s.has(a))},AI.length)}
+ ${kp('Reclaimable storage',fmtB(waste),'if extra copies removed','r','d3',()=>listG('Reclaimable storage — biggest first','',G),G.length)}
+ ${kp('Cross-library groups',fmtN(XG.length),'same file in 2+ libraries','','d4',()=>listG('Cross-library duplicate groups','',XG),XG.length)}
+ ${kp('Generic titles',fmtN(GT.length),P(GT.length,A.length)+' of assets','','d5',()=>lst('Assets with generic titles','Titles such as Roche_3580',A,a=>a.flags.includes('genTitle')),GT.length)}</div>
+ <div class="g2">${card('Reclaimable storage by library (MB)','d1c')}${card('Generic titles by library (%)','d2c')}</div>
+ <div class="g2">${card('File size distribution','d3c',320,'Number of assets per file-size band, by library.')}${card('Storage by file type (MB, top 10)','d4c')}</div>
+ <div class="card"><h3>Duplicate groups</h3><p class="mut">"Same size, different name" groups are probable only. Verify before deleting.</p><div id="d5t"></div></div><div class="card"><h3>Largest files</h3><div id="d6t"></div></div>`;
+ const w=new Map();G.forEach(g=>g.items.slice(1).forEach(a=>w.set(a.lib,(w.get(a.lib)||0)+a.size)));simpleBar('d1c',[...w.entries()].map(([k,v])=>[k,+(v/1048576).toFixed(1)]));
+ simpleBar('d2c',activeLibs().map(l=>[l,rate(A.filter(a=>a.lib===l),a=>a.flags.includes('genTitle'))]));
+ const so=['<100 KB','100 KB–1 MB','1–10 MB','10–100 MB','>100 MB'],sb=a=>a.size<102400?so[0]:a.size<1048576?so[1]:a.size<10485760?so[2]:a.size<104857600?so[3]:so[4];
+ stackBy('d3c',A,sb,a=>a.lib,{catSort:(a,b)=>so.indexOf(a)-so.indexOf(b)});
+ const eb=new Map();A.forEach(a=>{const k=a.ext||'(none)';eb.set(k,(eb.get(k)||0)+a.size)});simpleBar('d4c',topN(eb,10).map(([k,v])=>[k,+(v/1048576).toFixed(1)]));
+ regTable('d5t',DR_COLS.groups(),G,{k:'w',limit:60,click:g=>go({tab:'explorer',exp:{q:g.items[0].title}})});
+ regTable('d6t',cl('t','lib','p','e','s','dta'),A.slice().sort((a,b)=>b.size-a.size).slice(0,100),{k:'s',limit:20})};
+
+/* PAGE: tags & collections */
+const collType=c=>/^shared collection\s*\//i.test(c)?'Auto "Shared collection"':(/^(my\b|mine\b|personal\b)|[’']s\b/i.test(c)?'Personal-looking':'Named / curated');
+function tagStats(A){const tg=new Map();for(const a of A)for(const t of new Set(a.tags)){let o=tg.get(t);if(!o)tg.set(t,o={tag:t,n:0,first:a});o.n++}return[...tg.values()]}
+const tagCols=[{k:'tag',l:'Tag',v:o=>o.tag},{k:'n',l:'Assets',v:o=>o.n,num:1},{k:'ex',l:'Example asset',v:o=>o.first.title},{k:'lib',l:'Library',v:o=>o.first.lib}];
+const openTag=(A,o)=>lst('Tag: '+o.tag,'Assets carrying this tag',A,a=>a.tags.includes(o.tag),{prev:DR});
+const listTags=(A,title,sub,rows)=>openDrawer({title,sub,rows,cols:tagCols,unit:'tags',total:0,sortK:'n',sortDir:-1,hay:o=>(o.tag+' '+o.first.title).toLowerCase(),click:o=>openTag(A,o)});
+PAGES.tags=()=>{const A=cur(),tr=tagStats(A),tn=new Map(tr.map(o=>[o.tag,o.n])),cu=new Map();for(const a of A)for(const c of new Set(a.collections))cu.set(c,(cu.get(c)||0)+1);
+ const vc=vcl(tr.map(o=>o.tag)),one=tr.filter(o=>o.n===1),noT_=A.filter(noT),cr=[...cu.entries()].map(([name,n])=>({name,n,type:collType(name)})),auto=cr.filter(o=>o.type==='Auto "Shared collection"');
+ const colCols=[{k:'c',l:'Collection',v:o=>o.name},{k:'n',l:'Assets',v:o=>o.n,num:1},{k:'t',l:'Type',v:o=>o.type}];
+ const listC=(title,sub,rows)=>openDrawer({title,sub,rows,cols:colCols,unit:'collections',total:0,sortK:'n',sortDir:-1,hay:o=>o.name.toLowerCase(),click:o=>lst('Collection: '+o.name,o.type,A,a=>a.collections.includes(o.name),{prev:DR})});
+ const noC=A.filter(a=>!a.collections.length);
+ $('#view').innerHTML=`<div class="kpis">
+ ${kp('Distinct tags',fmtN(tr.length),'avg '+(sum(A,a=>a.tags.length)/Math.max(1,A.length)).toFixed(1)+' per asset','','t1',()=>listTags(A,'All tags','Most used first. Click a tag to list its assets.',tr),tr.length)}
+ ${kp('Used once only',fmtN(one.length),P(one.length,tr.length)+' of tags','o','t2',()=>listTags(A,'Tags used only once','Candidates to merge or remove',one),one.length)}
+ ${kp('Tag variant clusters',fmtN(vc.length),'case / plural inconsistencies','o','t3',()=>openDrawer({title:'Tag variants to harmonise',rows:vc,unit:'clusters',total:0,cols:[{k:'v',l:'Variants',v:o=>o.join(' ≠ ')}],sortK:'v',sortDir:1,hay:o=>o.join(' ').toLowerCase(),click:o=>{const s=new Set(o);lst('Tag variants: '+o.join(' ≠ '),'',A,a=>a.tags.some(t=>s.has(t)),{prev:DR})}}),vc.length)}
+ ${kp('No tags',fmtN(noT_.length),P(noT_.length,A.length)+' of assets','r','t4',()=>lst('Assets with no tags','Unsearchable by tag',A,noT),noT_.length)}
+ ${kp('Distinct collections',fmtN(cu.size),'','','t5',()=>listC('All collections','Largest first',cr),cu.size)}
+ ${kp('Auto "Shared collection"',fmtN(auto.length),'likely clutter','o','t6',()=>listC('Auto-created "Shared collection" entries','Likely clutter',auto),auto.length)}</div>
+ <div class="g2">${card('Top tags','tt1',380)}${card('Tags per asset','tt2',380)}</div><div class="g2">${card('Collections by type','tt3')}${card('25 largest collections','tt4',520)}</div>
+ <div class="g2">${card('Auto "Shared collection" entries per month','tt5',320,'Month taken from the date in the collection name; names without a date are skipped.')}${card('Assets in no collection, by library (%)','tt6',320)}</div>
+ <div class="g2"><div class="card"><h3>Tag variants to harmonise</h3><p class="mut">Click a row to list the assets.</p><div id="tg_v"></div></div><div class="card"><h3>Assets in the most collections</h3><p class="mut">Click a row to open the asset.</p><div id="tg_m"></div></div></div>`;
+ ec('tt1',{tooltip:{formatter:'{b}: {c}'},series:[{type:'treemap',color:DARK,roam:false,breadcrumb:{show:false},data:tr.slice().sort((a,b)=>b.n-a.n).slice(0,80).map(o=>({name:o.tag,value:o.n})),label:{formatter:'{b}',color:'#fff'},itemStyle:{borderColor:'#fff',gapWidth:1}}]});
+ const to=['0','1–3','4–7','8–15','16+'];stackBy('tt2',A,a=>{const k=a.tags.length;return k===0?'0':k<=3?'1–3':k<=7?'4–7':k<=15?'8–15':'16+'},a=>a.lib,{catSort:(a,b)=>to.indexOf(a)-to.indexOf(b)});
+ pie('tt3',[...cnt(cr,o=>o.type).entries()]);const col={'Auto "Shared collection"':C.g2,'Personal-looking':C.purple,'Named / curated':C.blue};
+ simpleBar('tt4',topN(cu,25).map(([c,n])=>[c,n,col[collType(c)]]),{h:true,lw:260});
+ const mo=new Map();auto.forEach(o=>{const m=o.name.match(/(20\d{2})[-\/._ ](\d{1,2})(?!\d)/);if(m){const k=m[1]+'-'+m[2].padStart(2,'0');mo.set(k,(mo.get(k)||0)+1)}});
+ simpleBar('tt5',[...mo.entries()].sort((a,b)=>a[0]>b[0]?1:-1));
+ simpleBar('tt6',activeLibs().map(l=>[l,rate(A.filter(a=>a.lib===l),a=>!a.collections.length)]),{onClick:l=>lst('In no collection — '+l,'',A,a=>a.lib===l&&!a.collections.length)});
+ regTable('tg_v',[{k:'v',l:'Variants',v:o=>o.join(' ≠ ')},{k:'n',l:'Assets (all variants)',v:o=>sum(o,t=>tn.get(t)||0),num:1}],vc,{k:'n',limit:30,file:'tag-variants.csv',click:o=>{const s=new Set(o);lst('Tag variants: '+o.join(' ≠ '),'',A,a=>a.tags.some(t=>s.has(t)))}});
+ regTable('tg_m',[AC.t,AC.lib,AC.p,{k:'c',l:'Collections',v:a=>a.collections.length,num:1},AC.de,AC.tg,AC.al],A.filter(a=>a.collections.length).sort((a,b)=>b.collections.length-a.collections.length).slice(0,100),{k:'c',limit:20,file:'most-collected-assets.csv',click:a=>go({tab:'explorer',exp:{q:a.id}})})};
+
+/* PAGE: people */
+PAGES.people=()=>{const A=cur(),cn=cnt(A,a=>a.creator||'(unknown)'),t15=new Set(topN(cn,15).map(x=>x[0])),recent=A.filter(a=>a.created&&(S.asOf-a.created)<365*864e5),sysA=A.filter(a=>a.flags.includes('sys')),top=topN(cn,1)[0]||['(none)',0];
+ const g=new Map();for(const a of A){const k=a.creator||'(unknown)';let o=g.get(k);if(!o)g.set(k,o={c:k,n:0,libs:new Set(),m:0,cl:0});o.n++;o.libs.add(a.lib);o.m+=a.meta;if(a.flags.some(f=>CLEAN.includes(f)))o.cl++}
+ const gR=[...g.values()],cC=[{k:'c',l:'Creator',v:o=>o.c},{k:'n',l:'Assets',v:o=>o.n,num:1},{k:'l',l:'Libraries',v:o=>[...o.libs].join(', ')},{k:'m',l:'Metadata %',v:o=>m1(100*o.m/o.n),num:1,f:o=>(100*o.m/o.n).toFixed(1)+'%'},{k:'x',l:'Cleanup %',v:o=>m1(100*o.cl/o.n),num:1,f:o=>(100*o.cl/o.n).toFixed(1)+'%'}];
+ const of=name=>A.filter(a=>(a.creator||'(unknown)')===name),oc=o=>listA(o.c+' — assets','',of(o.c),{ex:o.c==='(unknown)'?null:{exp:{q:o.c}},prev:DR});
+ $('#view').innerHTML=`<div class="kpis">
+ ${kp('Distinct creators',fmtN(cn.size),'','','p1',()=>openDrawer({title:'All creators',sub:'Click a creator to list their assets',rows:gR,cols:cC,unit:'creators',total:0,sortK:'n',sortDir:-1,hay:o=>o.c.toLowerCase(),click:oc}),cn.size)}
+ ${kp('Top creator',fmtN(top[1]),P(top[1],A.length)+' of assets · '+esc(top[0]),'','p2',()=>listA(top[0]+' — assets','',of(top[0]),{ex:top[0]==='(unknown)'?null:{exp:{q:top[0]}}}),top[1])}
+ ${kp('Created last 12 months',fmtN(recent.length),P(recent.length,A.length)+' of assets','','p3',()=>listA('Created in the last 12 months','',recent,{sortK:'mo',sortDir:-1}),recent.length)}
+ ${kp('Last modified by system',fmtN(sysA.length),P(sysA.length,A.length)+' of assets · dates may be unreliable','o','p4',()=>lst('Last modified by a system account','',A,a=>a.flags.includes('sys')),sysA.length)}</div>
+ ${card('Uploads per year (by library)','pc3',320)}
+ <div class="g2">${card('Top creators by library','pc1',480)}${card('Most frequent modifiers','pc2',480)}</div><div class="card"><h3>Creator scorecard</h3><p class="mut">Click a row to list that creator's assets.</p><div id="p4t"></div></div>`;
+ stackBy('pc3',A,a=>a.created?a.created.getUTCFullYear():null,a=>a.lib);
+ stackBy('pc1',A.filter(a=>t15.has(a.creator||'(unknown)')),a=>a.creator||'(unknown)',a=>a.lib,{h:true,lw:220});
+ simpleBar('pc2',topN(cnt(A,a=>a.modifier||'(none)'),12),{h:true,lw:220});regTable('p4t',cC,gR,{k:'n',limit:40,click:oc})};
+
+/* PAGE: explorer */
+function exRows(){const e=S.exp,q=e.q.toLowerCase(),sc=S.scope,mf=e.miss?MISSFN[e.miss]:null;
+ return cur().filter(a=>(!e.lib||a.lib===e.lib)&&(!e.flag||a.flags.includes(e.flag))&&(!mf||mf(a))&&(!e.status||(a.status||'(none)')===e.status)&&(!e.ext||a.ext===e.ext)&&(!e.folder||a.path===e.folder||a.path.startsWith(e.folder+' / '))&&(!e.direct||!sc||a.parts.length<=sc.parts.length)&&(!q||a.hay.includes(q)))}
+function drawExplorer(){const rows=exRows();regTable('ex_tb',cl('lib','t','dta','p','e','s','st','cd','mo','cr','fl','id'),rows,{k:'mo',dir:-1,limit:200,file:'filtered-assets.csv'});$('#ex_n').textContent=fmtN(rows.length)+' assets · '+fmtB(sum(rows,a=>a.size))}
+PAGES.explorer=()=>{const A=cur(),e=S.exp,sc=S.scope,off=sc?sc.parts.length:0,direct=[],m=new Map();
+ for(const a of A){if(a.parts.length<=off){direct.push(a);continue}const parts=a.parts.slice(0,off+1),k=a.lib+'\u0001'+parts.join(' / ');let o=m.get(k);if(!o)m.set(k,o={lib:a.lib,name:a.parts[off],parts,f:S.folders.get(k),n:0,d:0,size:0,meta:0,bad:0});o.n++;if(a.parts.length===off+1)o.d++;o.size+=a.size;o.meta+=a.meta;if(a.flags.includes('badStatus'))o.bad++}
+ const rows=[...m.values()],opt=(arr,sel)=>arr.map(x=>`<option value="${esc(x)}" ${sel===x?'selected':''}>${esc(x)}</option>`).join('');
+ const crumbs=sc?[`<a href="#" data-crumb="-1">All libraries</a>`,`<a href="#" data-crumb="0">${esc(sc.lib)}</a>`,...sc.parts.map((p,i)=>`<a href="#" data-crumb="${i+1}">${esc(p)}</a>`)].join(' › '):'All libraries';
+ $('#view').innerHTML=`<div class="card"><h3>Folder contents</h3><p class="mut">${crumbs} · choose a folder in the header dropdowns, click a breadcrumb, or click a row below.</p>
+ <div class="kpis">${kp('Files directly here',fmtN(direct.length),'','','e1',()=>listA('Files directly in this folder','',direct),direct.length)}
+ ${kp('Subfolders',fmtN(rows.length),'next level down','','e2',()=>listF('Subfolders','Click a row to open the folder.',rows.map(o=>o.f).filter(Boolean)),rows.length)}
+ ${kp('Total in view',fmtN(A.length),'incl. subfolders','','e3',()=>listA('All assets in view','',A),A.length)}
+ ${kp('Storage',fmtB(sum(A,a=>a.size)),'','','e4',()=>listA('Storage — largest first','',A,{sortK:'s',sortDir:-1}),A.length)}</div>
+ <div class="g2">${card('File types','cn1',260)}${card('Workflow status','cn2',260)}</div><div id="cn_tb"></div></div>
+ <div class="card"><h3>Assets</h3>${e.miss?`<div class="bar"><span class="b r">Filter: ${esc(e.miss)}</span><button class="btn s" data-miss-clear>✕ Clear this filter</button></div>`:''}
+ <div class="bar"><input id="ex_q" placeholder="Search title, folder, tag, creator, ID…" value="${esc(e.q)}" style="width:280px"><select id="ex_lib"><option value="">All libraries</option>${opt(activeLibs(),e.lib)}</select>
+ <select id="ex_flag"><option value="">Any flag</option>${Object.entries(FLAGS).map(([k,v])=>`<option value="${k}" ${e.flag===k?'selected':''}>${v[0]}</option>`).join('')}</select><select id="ex_ext"><option value="">Any type</option>${opt([...new Set(A.map(a=>a.ext))].sort(),e.ext)}</select>
+ ${sc&&off?`<select id="ex_direct"><option value="">Include subfolders</option><option value="1" ${e.direct?'selected':''}>Only files directly in this folder</option></select>`:''}<span id="ex_n" class="mut" style="margin:0"></span></div><div id="ex_tb"></div></div>`;
+ pie('cn1',topN(cnt(A,a=>a.ext||'(none)'),8));pie('cn2',topN(cnt(A,a=>a.status||'(none)'),8));
+ regTable('cn_tb',[{k:'name',l:'Subfolder',v:o=>(sc?'':o.lib+' · ')+o.name,f:o=>'▸ '+esc((sc?'':o.lib+' · ')+o.name)},{k:'n',l:'Assets (incl. sub)',v:o=>o.n,num:1,f:o=>fmtN(o.n)},{k:'d',l:'Files directly',v:o=>o.d,num:1},{k:'s',l:'Storage',v:o=>o.size,f:o=>fmtB(o.size),x:o=>o.size,num:1},
+  {k:'m',l:'Metadata %',v:o=>m1(100*o.meta/o.n),num:1,f:o=>(100*o.meta/o.n).toFixed(1)+'%'},{k:'b',l:'Cleanup status',v:o=>o.bad,num:1},{k:'h',l:'Health',v:o=>o.f?o.f.health:0,num:1,f:o=>o.f&&o.f.direct?hb(o.f.health):'–'},{k:'i',l:'Issues',v:o=>o.f?o.f.issues.map(i=>ISS[i][0]).join('; '):'',f:o=>o.f?issBadges(o.f):''}],rows,{k:'n',limit:100,file:'folder-contents.csv',click:o=>drill(o.lib,o.parts)});drawExplorer()};
+
+/* PAGE: naming compliance */
+PAGES.naming=()=>{const A=cur(),bad=A.filter(a=>a.nm.length),ks=Object.keys(NMR).filter(k=>k!=='pat'||S.re),rc=ks.map(k=>[k,A.filter(a=>a.nm.includes(k))]),libs=activeLibs();
+ const N=nameFolders(),fr=N.map(n=>({n,r:Object.keys(NMF).filter(k=>NMF[k][1](n))})).filter(x=>x.r.length),top=rc.slice().sort((a,b)=>b[1].length-a[1].length)[0],nmc=cl('t','lib','p','nm','dta','cr');
+ $('#view').innerHTML=`<div class="kpis">
+ ${kp('Assets with naming issues',fmtN(bad.length),P(bad.length,A.length)+' of assets',bad.length?'o':'g','n1',()=>gl('Assets with naming issues','',bad,{cols:nmc}),bad.length)}
+ ${kp('Compliant assets',fmtN(A.length-bad.length),P(A.length-bad.length,A.length)+' of assets','g','n2',()=>gl('Compliant asset names','',A.filter(a=>!a.nm.length)),A.length-bad.length)}
+ ${kp('Folders with naming issues',fmtN(fr.length),P(fr.length,N.length)+' of folders',fr.length?'o':'g','n3',()=>glF('Folders with naming issues','',fr),fr.length)}
+ ${top&&top[1].length?kp('Most common issue',fmtN(top[1].length),esc(NMR[top[0]][0]),'','n4',()=>gl(NMR[top[0]][0],'',top[1],{cols:nmc}),top[1].length):kpi('Most common issue','–','none found','g')}</div>
+ ${S.re?'':'<p class="tip">No custom naming pattern set. Add one under <b>Load data → Governance rules</b> to also check names against your own convention.</p>'}
+ <div class="g2">${card('Assets by naming rule broken','n1c',360,'Click a bar to list the assets.')}${card('Naming-compliant share by library (%)','n2c',360)}</div>
+ <div class="card"><h3>Assets that break a naming rule</h3><div id="n_tb"></div></div><div class="card"><h3>Folders with naming issues</h3><p class="mut">Click a row to list the assets in the folder.</p><div id="n_ft"></div></div>`;
+ simpleBar('n1c',rc.map(([k,l])=>[NMR[k][0],l.length]),{h:true,lw:300,onClick:name=>{const k=ks.find(k=>NMR[k][0]===name);gl(name,'',A.filter(a=>a.nm.includes(k)),{cols:nmc})}});
+ stk('n2c',libs,[{n:'Compliant',c:C.blue,d:libs.map(l=>rate(A.filter(a=>a.lib===l),a=>!a.nm.length))},{n:'Naming issue',c:C.orange,d:libs.map(l=>rate(A.filter(a=>a.lib===l),a=>a.nm.length))}],{rot:20});
+ regTable('n_tb',nmc,bad,{k:'t',dir:1,limit:200,file:'naming-issues.csv'});
+ regTable('n_ft',FCOLS,fr,{k:'n',limit:100,file:'folder-naming-issues.csv',click:x=>gl('Assets in '+x.n.path,x.n.lib,A.filter(a=>a.lib===x.n.lib&&(a.path===x.n.path||a.path.startsWith(x.n.path+' / '))),{cols:cl('t','lib','p','nm','dta','cr')})})};
+
+/* PAGE: taxonomy conformance */
+const valsOf=(a,r)=>{const raw=a.custom[r.f]||'';if(!raw)return[];return r.multi?splitList(raw,/[|;,]/):r.single?(/[|;]/.test(raw)?splitList(raw,/[|;]/):[raw]):[]};
+function taxoData(A,libs){const rows=[],vr=[];
+ for(const l of S.libs.filter(l=>libs.includes(l.name)))for(const f of l.custom){
+  const as=A.filter(a=>a.lib===l.name),multi=/multiselect/i.test(f),single=!multi&&/select/i.test(f),r={lib:l.name,f,multi,single,type:multi?'Multi-select':single?'Single-select':'Free / other',n:as.length};
+  const filled=as.filter(a=>a.custom[f]),m=new Map();let mi=0;
+  if(multi||single)for(const a of filled){if(single&&/[|;]/.test(a.custom[f]))mi++;for(const v of new Set(valsOf(a,r)))m.set(v,(m.get(v)||0)+1)}
+  const vc=(multi||single)?vcl([...m.keys()]):[],vs=new Set(vc.flat()),lim=Math.max(1,Math.floor(filled.length*.005)),rare=new Set((multi||single)&&m.size>=5?[...m.entries()].filter(([v,n])=>n<=lim).map(x=>x[0]):[]);
+  Object.assign(r,{h:filled.length,fill:pct(filled.length,as.length),d:m.size,vc:vc.length,rare:rare.size,mi,vcl:vc});rows.push(r);
+  for(const [v,n] of m)if(vs.has(v)||rare.has(v))vr.push({r,v,n,note:vs.has(v)?'Variant spelling':'Rarely used (possible off-list)'})}
+ const tg=new Map();for(const a of A)for(const t of new Set(a.tags))tg.set(t,(tg.get(t)||0)+1);
+ const tv=new Set(vcl([...tg.keys()]).flat()),hasL=S.apprTags.size>0,off=t=>hasL&&!S.apprTags.has(t.toLowerCase()),tr=[...tg.entries()].filter(([t])=>tv.has(t)||off(t)).map(([t,n])=>({t,n,note:[tv.has(t)?'Variant spelling':'',off(t)?'Not on approved list':''].filter(Boolean).join(' · ')}));
+ const offN=hasL?[...tg.keys()].filter(off).length:0,avg=rows.length?sum(rows,r=>r.fill)/rows.length:0;
+ return{rows,vr,tg,tr,hasL,off,offN,avg}}
+PAGES.taxo=()=>{const A=cur(),libs=activeLibs(),{rows,vr,tr,hasL,offN,avg}=taxoData(A,libs);
+ $('#view').innerHTML=(rows.length?'':'<p class="tip">None of the loaded libraries has custom (taxonomy) fields, so only the tag checks are shown.</p>')+`<div class="kpis">
+ ${kpi('Custom fields checked',fmtN(rows.length),libs.length+' libraries')}
+ ${kpi('Average fill rate',avg.toFixed(1)+'%','across custom fields',rows.length?kc(avg):'')}
+ ${kpi('Variant spellings in select fields',fmtN(sum(rows,r=>r.vc)),'clusters, e.g. case or plural differences',sum(rows,r=>r.vc)?'o':'g')}
+ ${kp('Values to review',fmtN(vr.length),'variants or rarely used values',vr.length?'o':'g','x1',()=>openDrawer({title:'Select values to review',rows:vr,unit:'values',total:0,cols:VCOLS,sortK:'n',sortDir:-1,hay:x=>(x.r.lib+' '+x.r.f+' '+x.v).toLowerCase(),click:vClick}),vr.length)}
+ ${kpi('Several values in a single-select',fmtN(sum(rows,r=>r.mi)),'assets',sum(rows,r=>r.mi)?'o':'g')}
+ ${hasL?kp('Off-list tags',fmtN(offN),'not on your approved list',offN?'r':'g','x2',()=>openDrawer({title:'Tags not on the approved list',rows:tr.filter(x=>x.note.includes('approved')),unit:'tags',total:0,cols:TGCOLS,sortK:'n',sortDir:-1,hay:x=>x.t.toLowerCase(),click:tClick}),offN):kpi('Off-list tags','n/a','add an approved-tags list on the Load screen')}</div>
+ <div class="g2">${card('Fill rate by custom field (%)','x1c',Math.max(280,rows.length*26+60))}${card('Consistency issues by field','x2c',Math.max(280,rows.length*26+60),'Variant clusters, rarely used values and assets with several values in a single-select field.')}</div>
+ <div class="card"><h3>Custom field conformance</h3><p class="mut">Click a row to list the assets where the field is empty.</p><div id="x_tb"></div></div>
+ <div class="card"><h3>Select values to review</h3><p class="mut">Click a row to list the assets that use the value.</p><div id="x_vt"></div></div>
+ <div class="card"><h3>Tag review</h3><p class="mut">Tags that are spelling variants of each other${hasL?' or are not on your approved list':''}. Click a row to list the assets.</p><div id="x_tg"></div></div>`;
+ const nm=r=>short(r.lib+' · '+r.f,48);
+ simpleBar('x1c',rows.map(r=>[nm(r),r.fill,hcol(r.fill)]),{h:true,lw:260});
+ stk('x2c',rows.map(nm),[{n:'Variant clusters',c:C.orange,d:rows.map(r=>r.vc)},{n:'Rarely used values',c:C.lorange,d:rows.map(r=>r.rare)},{n:'Multi-value in single-select',c:C.sr,d:rows.map(r=>r.mi)}],{h:true});
+ regTable('x_tb',[{k:'lib',l:'Library',v:r=>r.lib},{k:'f',l:'Field',v:r=>r.f},{k:'t',l:'Type',v:r=>r.type},{k:'n',l:'Assets',v:r=>r.n,num:1},{k:'fill',l:'Fill rate',v:r=>r.fill,num:1,f:r=>hb(Math.round(r.fill))},{k:'d',l:'Distinct values',v:r=>r.d,num:1},{k:'vc',l:'Variant clusters',v:r=>r.vc,num:1},{k:'rare',l:'Rare values',v:r=>r.rare,num:1},{k:'mi',l:'Multi in single',v:r=>r.mi,num:1}],rows,{k:'fill',dir:1,file:'taxonomy-fields.csv',click:r=>gl(r.lib+' — '+r.f+' empty','',A.filter(a=>a.lib===r.lib&&!a.custom[r.f]))});
+ regTable('x_vt',VCOLS,vr,{k:'n',limit:100,file:'taxonomy-values-to-review.csv',click:vClick});
+ regTable('x_tg',TGCOLS,tr,{k:'n',limit:100,file:'tag-review.csv',click:tClick});
+ function vClick(x){gl(x.r.lib+' — '+x.r.f+' = '+x.v,x.note,A.filter(a=>a.lib===x.r.lib&&valsOf(a,x.r).includes(x.v)))}
+ function tClick(x){gl('Tag: '+x.t,x.note,A.filter(a=>a.tags.includes(x.t)))}};
+const VCOLS=[{k:'lib',l:'Library',v:x=>x.r.lib},{k:'f',l:'Field',v:x=>x.r.f},{k:'v',l:'Value',v:x=>x.v},{k:'n',l:'Assets',v:x=>x.n,num:1},{k:'note',l:'Finding',v:x=>x.note}];
+const TGCOLS=[{k:'t',l:'Tag',v:x=>x.t},{k:'n',l:'Assets',v:x=>x.n,num:1},{k:'note',l:'Finding',v:x=>x.note}];
+
+/* PAGE: rights & licence risk */
+PAGES.rights=()=>{const A=cur(),libs=activeLibs(),asOf=S.asOf,rc=cl('t','lib','p','st','rk','ex','cs','dta'),by=l=>A.filter(a=>a.rl===l),exs=A.filter(a=>a.rk.includes('expA')),soon=A.filter(a=>a.expSoon),nolic=A.filter(a=>a.license&&!a.expires);
+ $('#view').innerHTML=`<p class="tip"><b>High</b> = expired (or expired but still Approved). <b>Medium</b> = expires within 90 days, licensed with no end date, or no copyright notice or status. <b>Low</b> = only a usage restriction in the licence text. Dates are compared with the as-of date ${fmtD(asOf)}.</p><div class="kpis">
+ ${kp('High risk',fmtN(by(3).length),P(by(3).length,A.length)+' of assets',by(3).length?'r':'g','r1',()=>gl('High-risk assets','',by(3),{cols:rc,sortK:'rk',sortDir:-1}),by(3).length)}
+ ${kp('Medium risk',fmtN(by(2).length),P(by(2).length,A.length)+' of assets',by(2).length?'o':'g','r2',()=>gl('Medium-risk assets','',by(2),{cols:rc,sortK:'rk',sortDir:-1}),by(2).length)}
+ ${kp('Low risk',fmtN(by(1).length),'usage restrictions only','','r3',()=>gl('Low-risk assets','',by(1),{cols:rc}),by(1).length)}
+ ${kp('Expired but Approved',fmtN(exs.length),'should not be in use',exs.length?'r':'g','r4',()=>gl('Expired but still Approved','',exs,{cols:rc,sortK:'ex',sortDir:1}),exs.length)}
+ ${kp('Expiring ≤ 90 days',fmtN(soon.length),'','o','r5',()=>gl('Expiring within 90 days','Soonest first',soon,{cols:rc,sortK:'ex',sortDir:1}),soon.length)}
+ ${kp('Licensed, no end date',fmtN(nolic.length),'','o','r6',()=>gl('Licensed with no expiry date','',nolic,{cols:rc}),nolic.length)}</div>
+ <div class="g2">${card('Risk level by library','r1c',340,'Click a segment to list the assets.')}${card('Expiry calendar — next 12 months','r2c',340,'Yellow = within 90 days. Click a bar to list the assets.')}</div>
+ <div class="g2"><div class="card"><h3>Licence summary</h3><p class="mut">Click a row to list the assets.</p><div id="r_lt"></div></div>${card('Rights issues by type','r3c',340,'An asset can have several issues.')}</div>
+ <div class="card"><h3>Risk register</h3><p class="mut">All assets with at least one rights finding, highest risk first.</p><div id="r_tb"></div></div>`;
+ const lv=[3,2,1,0],lc=[C.sr,C.sy,C.xlblue,C.sg];
+ stk('r1c',libs,lv.map((l,i)=>({n:RL[l],c:lc[i],d:libs.map(x=>A.filter(a=>a.lib===x&&a.rl===l).length)})),{rot:20,on:(lib,s)=>gl(s+' risk — '+lib,'',A.filter(a=>a.lib===lib&&RL[a.rl]===s),{cols:rc,sortK:'rk',sortDir:-1})});
+ const mk=d=>d.toISOString().slice(0,7),months=Array.from({length:12},(_,i)=>mk(new Date(Date.UTC(asOf.getUTCFullYear(),asOf.getUTCMonth()+i,1)))),mc=new Map();
+ A.forEach(a=>{if(a.expires&&!a.expired){const k=mk(a.expires);mc.set(k,(mc.get(k)||0)+1)}});
+ const ex=A.filter(a=>a.expired);
+ simpleBar('r2c',[['Expired',ex.length,C.sr],...months.map((m,i)=>[m,mc.get(m)||0,i<3?C.sy:C.blue])],{rot:30,onClick:n=>gl('Expiry — '+n,'',n==='Expired'?ex:A.filter(a=>a.expires&&!a.expired&&mk(a.expires)===n),{cols:rc,sortK:'ex',sortDir:1})});
+ const lm=new Map();A.forEach(a=>splitList(a.license,/\|/).forEach(n=>{let o=lm.get(n);if(!o)lm.set(n,o={n,c:0,h:0,r:0});o.c++;if(a.rl===3)o.h++;if(a.restr)o.r++}));
+ regTable('r_lt',[{k:'n',l:'Licence',v:o=>o.n},{k:'c',l:'Assets',v:o=>o.c,num:1},{k:'h',l:'High risk',v:o=>o.h,num:1},{k:'r',l:'With restrictions',v:o=>o.r,num:1}],[...lm.values()],{k:'c',limit:30,file:'licence-summary.csv',click:o=>gl('Licence: '+o.n,'',A.filter(a=>splitList(a.license,/\|/).includes(o.n)),{cols:rc})});
+ simpleBar('r3c',Object.keys(RK).map(k=>[RK[k][0],A.filter(RK[k][2]).length,RK[k][1]==='h'?C.sr:RK[k][1]==='m'?C.sy:C.lblue]),{h:true,lw:230,onClick:n=>{const k=Object.keys(RK).find(k=>RK[k][0]===n);gl(n,'',A.filter(RK[k][2]),{cols:rc})}});
+ regTable('r_tb',rc,A.filter(a=>a.rl>0),{k:'rk',limit:200,file:'rights-risk-register.csv'})};
+
+/* PAGE: ROT analysis */
+PAGES.rot=()=>{const A=cur(),libs=activeLibs(),R=A.filter(a=>a.rot.R),O=A.filter(a=>a.rot.O),T=A.filter(a=>a.rot.T),any=A.filter(aR),rc=cl('t','lib','p','st','rot','dta','mo');
+ const rec=(n,s)=>s>=.8&&n>=3?['Archive folder','r']:s>=.4?['Review folder','o']:s>=.15?['Targeted clean-up','m']:['Keep','i'];
+ const fr=groupFolders(A).map(o=>{const r=o.as.filter(aR),s=o.as.length?r.length/o.as.length:0;return{...o,r,s,rec:rec(o.as.length,s),size:sum(r,a=>a.size)}}).filter(o=>o.r.length);
+ const rsn=[['Cleanup status',a=>a.bad],['Expired',a=>a.expired],['Folder naming smell',a=>a.badFolder],['Stale and in no collection',a=>a.stale&&!a.collections.length]];
+ $('#view').innerHTML=`<p class="tip"><b>Redundant</b> = probable duplicate copy (same file size and type, and the same name or a large file). <b>Obsolete</b> = cleanup status, expired, in a folder with an "old / test / archive" name, or stale and in no collection. <b>Trivial</b> = no tags, no description and no collection. An asset can be in more than one class.</p><div class="kpis">
+ ${kp('ROT assets',fmtN(any.length),P(any.length,A.length)+' of assets',pct(any.length,A.length)>25?'r':'o','t0',()=>gl('Assets with any ROT class','',any,{cols:rc}),any.length)}
+ ${kp('Redundant',fmtN(R.length),'probable duplicates','o','t1',()=>gl('Redundant assets','',R,{cols:rc}),R.length)}
+ ${kp('Obsolete',fmtN(O.length),'','o','t2',()=>gl('Obsolete assets','',O,{cols:rc}),O.length)}
+ ${kp('Trivial',fmtN(T.length),'','o','t3',()=>gl('Trivial assets','',T,{cols:rc}),T.length)}
+ ${kpi('Storage held by ROT',fmtB(sum(any,a=>a.size)),'upper bound: includes the original of each duplicate')}</div>
+ <div class="g2">${card('ROT classes by library','t1c',340,'Click a segment to list the assets.')}${card('Why assets are obsolete','t2c',340,'Click a bar to list the assets.')}</div>
+ <div class="card"><h3>Folder recommendations</h3><p class="mut">Share of the files directly in a folder that are ROT. Archive ≥ 80% (3+ files) · Review ≥ 40% · Targeted clean-up ≥ 15%. Click a row to list the ROT assets.</p><div id="t_ft"></div></div>
+ <div class="card"><h3>ROT assets</h3><div id="t_tb"></div></div>`;
+ stk('t1c',libs,[['Redundant','R',C.blue],['Obsolete','O',C.orange],['Trivial','T',C.g2]].map(([n,k,c])=>({n,c,d:libs.map(l=>A.filter(a=>a.lib===l&&a.rot[k]).length)})),{rot:20,on:(lib,s)=>{const k={Redundant:'R',Obsolete:'O',Trivial:'T'}[s];gl(s+' — '+lib,'',A.filter(a=>a.lib===lib&&a.rot[k]),{cols:rc})}});
+ simpleBar('t2c',rsn.map(([n,f])=>[n,A.filter(f).length]),{h:true,lw:200,onClick:n=>gl(n,'',A.filter(rsn.find(x=>x[0]===n)[1]),{cols:rc})});
+ regTable('t_ft',[{k:'lib',l:'Library',v:o=>o.lib},{k:'p',l:'Folder',v:o=>o.path},{k:'n',l:'Files here',v:o=>o.as.length,num:1},{k:'r',l:'ROT files',v:o=>o.r.length,num:1},{k:'s',l:'ROT share',v:o=>m1(100*o.s),num:1,f:o=>(100*o.s).toFixed(1)+'%'},{k:'z',l:'ROT storage',v:o=>o.size,num:1,f:o=>fmtB(o.size),x:o=>o.size},{k:'rec',l:'Recommendation',v:o=>o.rec[0],f:o=>`<span class="b ${o.rec[1]}">${o.rec[0]}</span>`}],fr,{k:'s',limit:100,file:'rot-folder-recommendations.csv',click:o=>gl('ROT assets in '+o.path,o.lib,o.r,{cols:rc})});
+ regTable('t_tb',rc,any,{k:'t',dir:1,limit:200,file:'rot-assets.csv'})};
+
+/* PAGE: findability */
+PAGES.find=()=>{const A=cur(),libs=activeLibs(),N=A.length,avg=N?sum(A,a=>a.fs)/N:0,lo=A.filter(a=>a.fs<50),mid=A.filter(a=>a.fs>=50&&a.fs<80),hi=A.filter(a=>a.fs>=80),fcols=cl('t','lib','p','fs','fw','dta');
+ const comp=FC.map(c=>[c[0],N?pct(sum(A,a=>c[2](a)),N*c[1]):0]),weak=comp.slice().sort((a,b)=>a[1]-b[1])[0];
+ const fr=groupFolders(A).filter(o=>o.as.length>=5).map(o=>({...o,avg:sum(o.as,a=>a.fs)/o.as.length}));
+ $('#view').innerHTML=`<p class="tip">Score per asset (0–100): title 20 (not generic, 3+ characters) · tags 30 (3+ tags = full) · description 25 (30+ characters = full) · alt text 10 · collection 10 · filed in a folder 5.</p><div class="kpis">
+ ${kpi('Average score',avg.toFixed(1),'out of 100',N?kc(avg):'')}
+ ${kp('Poor (< 50)',fmtN(lo.length),P(lo.length,N)+' of assets',lo.length?'r':'g','f1',()=>gl('Assets scoring below 50','Lowest first',lo,{cols:fcols,sortK:'fs',sortDir:1}),lo.length)}
+ ${kp('Fair (50–79)',fmtN(mid.length),P(mid.length,N)+' of assets','o','f2',()=>gl('Assets scoring 50–79','',mid,{cols:fcols,sortK:'fs',sortDir:1}),mid.length)}
+ ${kp('Good (≥ 80)',fmtN(hi.length),P(hi.length,N)+' of assets','g','f3',()=>gl('Assets scoring 80 or more','',hi,{cols:fcols}),hi.length)}
+ ${weak?kp('Weakest component',weak[1].toFixed(0)+'%',esc(weak[0])+' (share of points earned)','o','f4',()=>gl('Weak: '+weak[0],'Assets that lose points here',A.filter(a=>a.fsw.includes(weak[0])),{cols:fcols}),N):''}</div>
+ <div class="g2">${card('Score distribution','f1c',320,'Click a bar to list the assets.')}${card('Points earned by component (%)','f2c',320,'Click a bar to list assets that lose points on it.')}</div>
+ ${card('Average score by library','f3c',300)}
+ <div class="g2"><div class="card"><h3>Lowest-scoring folders</h3><p class="mut">Folders with 5+ files. Click a row to list the assets.</p><div id="f_ft"></div></div><div class="card"><h3>Weakest assets</h3><div id="f_tb"></div></div></div>`;
+ const bins=Array.from({length:10},(_,i)=>({n:i*10+'–'+(i*10+9),lo:i*10,c:i<5?C.sr:i<8?C.sy:C.sg}));
+ simpleBar('f1c',bins.map(b=>[b.n,A.filter(a=>Math.min(9,Math.floor(a.fs/10))*10===b.lo).length,b.c]),{all:1,onClick:(n,v,p)=>{const b=bins[p.dataIndex];gl('Score '+b.n,'',A.filter(a=>Math.min(9,Math.floor(a.fs/10))*10===b.lo),{cols:fcols,sortK:'fs',sortDir:1})}});
+ simpleBar('f2c',comp.map(c=>[c[0],c[1],hcol(c[1])]),{h:true,lw:160,onClick:n=>gl('Weak: '+n,'',A.filter(a=>a.fsw.includes(n)),{cols:fcols})});
+ simpleBar('f3c',libs.map(l=>{const as=A.filter(a=>a.lib===l),v=as.length?m1(sum(as,a=>a.fs)/as.length):0;return[l,v,hcol(v)]}),{rot:20,onClick:l=>gl('Weakest assets — '+l,'',A.filter(a=>a.lib===l),{cols:fcols,sortK:'fs',sortDir:1})});
+ regTable('f_ft',[{k:'lib',l:'Library',v:o=>o.lib},{k:'p',l:'Folder',v:o=>o.path},{k:'n',l:'Files',v:o=>o.as.length,num:1},{k:'a',l:'Avg score',v:o=>m1(o.avg),num:1,f:o=>hb(Math.round(o.avg))}],fr,{k:'a',dir:1,limit:30,file:'findability-folders.csv',click:o=>gl('Findability — '+o.path,o.lib,o.as,{cols:fcols,sortK:'fs',sortDir:1})});
+ regTable('f_tb',fcols,A,{k:'fs',dir:1,limit:30,file:'findability-assets.csv'})};
+
+/* PAGE: workflow ageing */
+const AGB=['<30 days','30–90 days','90–180 days','180–365 days','>1 year','unknown'];
+const agb=a=>a.age==null?AGB[5]:a.age<30?AGB[0]:a.age<90?AGB[1]:a.age<180?AGB[2]:a.age<365?AGB[3]:AGB[4];
+PAGES.aging=()=>{const A=cur(),libs=activeLibs(),NA=A.filter(a=>!a.ok),lim=S.th.stuck,stuck=NA.filter(a=>a.age!=null&&a.age>lim),ages=NA.filter(a=>a.age!=null).map(a=>a.age),oldest=ages.length?Math.max(...ages):0,ac=cl('t','lib','p','st','age','mo','cr','dta');
+ const sm=new Map();NA.forEach(a=>{const k=a.status||'(none)';(sm.get(k)||sm.set(k,[]).get(k)).push(a)});
+ const sr=[...sm.entries()].map(([s,as])=>{const ag=as.filter(a=>a.age!=null).map(a=>a.age);return{s,as,med:med(ag),max:ag.length?Math.max(...ag):0,stuck:as.filter(a=>a.age!=null&&a.age>lim).length}});
+ $('#view').innerHTML=`<p class="tip">Assets whose status is not approved (${S.appr.size?'your approved list':'default: Approved, Published, Final'}), by days since last modification. "Stuck" = more than ${lim} days. Migrations can reset modification dates, so treat ages as indicative. With only an approved status selected in the header this report is empty.</p><div class="kpis">
+ ${kpi('Approved',fmtN(A.length-NA.length),P(A.length-NA.length,A.length)+' of assets','g')}
+ ${kp('Not approved',fmtN(NA.length),P(NA.length,A.length)+' of assets',NA.length?'o':'g','a1',()=>gl('Assets not approved','Oldest first',NA,{cols:ac,sortK:'age',sortDir:-1}),NA.length)}
+ ${kp('Stuck',fmtN(stuck.length),'> '+lim+' days since modified',stuck.length?'r':'g','a2',()=>gl('Assets stuck outside Approved','Oldest first',stuck,{cols:ac,sortK:'age',sortDir:-1}),stuck.length)}
+ ${kpi('Median age',fmtN(med(ages))+' d','of not-approved assets')}
+ ${kpi('Oldest',fmtN(oldest)+' d','since last modification')}</div>
+ <div class="g2">${card('Age of not-approved assets by status','a1c',340,'Click a segment to list the assets.')}${card('Stuck vs within limit, by library','a2c',340)}</div>
+ <div class="card"><h3>By workflow status</h3><p class="mut">Click a row to list the assets.</p><div id="a_st"></div></div>
+ <div class="card"><h3>Oldest not-approved assets</h3><div id="a_tb"></div></div>`;
+ stackBy('a1c',NA,agb,a=>a.status||'(none)',{top:8,catSort:(a,b)=>AGB.indexOf(a)-AGB.indexOf(b),on:(b,s)=>gl(s+' · '+b,'',NA.filter(a=>agb(a)===b&&(a.status||'(none)')===s),{cols:ac,sortK:'age',sortDir:-1})});
+ const st=a=>a.age!=null&&a.age>lim;
+ stk('a2c',libs,[{n:'Stuck',c:C.sr,d:libs.map(l=>NA.filter(a=>a.lib===l&&st(a)).length)},{n:'Within limit',c:C.lblue,d:libs.map(l=>NA.filter(a=>a.lib===l&&!st(a)).length)}],{rot:20,on:(lib,s)=>gl(s+' — '+lib,'',NA.filter(a=>a.lib===lib&&(s==='Stuck')===st(a)),{cols:ac,sortK:'age',sortDir:-1})});
+ regTable('a_st',[{k:'s',l:'Status',v:o=>o.s},{k:'n',l:'Assets',v:o=>o.as.length,num:1},{k:'m',l:'Median days',v:o=>o.med,num:1,f:o=>fmtN(o.med)},{k:'x',l:'Oldest (days)',v:o=>o.max,num:1,f:o=>fmtN(o.max)},{k:'k',l:'Stuck',v:o=>o.stuck,num:1}],sr,{k:'n',file:'workflow-ageing-by-status.csv',click:o=>gl('Status: '+o.s,'',o.as,{cols:ac,sortK:'age',sortDir:-1})});
+ regTable('a_tb',ac,NA,{k:'age',limit:50,file:'workflow-ageing-assets.csv'})};
+
+/* PAGE: related-asset coverage */
+PAGES.related=()=>{const A=cur(),libs=activeLibs(),w=A.filter(a=>a.rel.length),no=A.filter(a=>!a.rel.length),br=A.filter(a=>a.brk.length),one=A.filter(a=>a.one.length),un=A.filter(a=>a.unl),att=A.filter(a=>a.att.length),iss=A.filter(a=>relIss(a).length),rc=cl('t','lib','p','rel','ri','dta');
+ $('#view').innerHTML=`<p class="tip">Related-asset IDs are checked against every loaded library, not only the current view. "Unlinked variants" are assets in the same library whose titles differ only by a number, "copy" or "final" and that are not linked to each other. These are likely, not certain.</p><div class="kpis">
+ ${kpi('Coverage',pct(w.length,A.length)+'%','assets with at least one related link',A.length?kc(pct(w.length,A.length)):'')}
+ ${kp('No related assets',fmtN(no.length),P(no.length,A.length)+' of assets','','l1',()=>gl('Assets with no related assets','',no,{cols:rc}),no.length)}
+ ${kp('Broken links',fmtN(br.length),'point to an ID that is not loaded',br.length?'r':'g','l2',()=>gl('Assets with broken related links','',br,{cols:rc}),br.length)}
+ ${kp('One-way links',fmtN(one.length),'the target does not link back',one.length?'o':'g','l3',()=>gl('Assets with one-way links','',one,{cols:rc}),one.length)}
+ ${kp('Unlinked variants',fmtN(un.length),'likely versions not linked',un.length?'o':'g','l4',()=>gl('Likely variants that are not linked','',un,{cols:rc}),un.length)}
+ ${kpi('Has attachments',pct(att.length,A.length)+'%','source files or attachments')}</div>
+ <div class="g2">${card('Related-asset coverage by library (%)','l1c',340,'Click a segment to list the assets.')}${card('Link issues','l2c',340,'Click a bar to list the assets.')}</div>
+ <div class="card"><h3>Assets with link issues</h3><div id="l_tb"></div></div>`;
+ stk('l1c',libs,[{n:'Linked',c:C.blue,d:libs.map(l=>rate(A.filter(a=>a.lib===l),a=>a.rel.length))},{n:'Not linked',c:C.g3,d:libs.map(l=>rate(A.filter(a=>a.lib===l),a=>!a.rel.length))}],{rot:20,on:(lib,s)=>gl(s+' — '+lib,'',A.filter(a=>a.lib===lib&&(s==='Linked')===(a.rel.length>0)),{cols:rc})});
+ const L=[['No related assets',no],['Broken links',br],['One-way links',one],['Unlinked variants',un]];
+ simpleBar('l2c',L.map(x=>[x[0],x[1].length]),{h:true,lw:160,onClick:n=>gl(n,'',L.find(x=>x[0]===n)[1],{cols:rc})});
+ regTable('l_tb',rc,iss,{k:'t',dir:1,limit:200,file:'related-asset-issues.csv'})};
+
+/* PAGE: audit pack & backlog */
+const PN=['Metadata completeness','Naming compliance','Rights (no high risk)','ROT-free','Findability','Workflow (not stuck)','Related coverage'];
+const isStuck=a=>!a.ok&&a.age!=null&&a.age>S.th.stuck;
+function scoreOf(as){const n=as.length;if(!n)return null;
+ const p=[100*sum(as,a=>a.meta)/n,rate(as,a=>!a.nm.length),100-rate(as,a=>a.rl===3),100-rate(as,aR),sum(as,a=>a.fs)/n,100-rate(as,isStuck),rate(as,a=>a.rel.length)];return{p,o:p.reduce((s,x)=>s+x,0)/p.length}}
+const BL=[
+ ['Rights','P1','Withdraw or renew assets that are expired but still Approved','High','Low',a=>a.rk.includes('expA')],
+ ['Rights','P1','Renew or retire expired assets','High','Medium',a=>a.expired],
+ ['ROT','P1','Archive or delete assets in a cleanup status','High','Low',a=>a.bad],
+ ['Metadata','P1','Add tags and a description to assets that have neither','High','High',a=>!a.tags.length&&!a.desc],
+ ['Rights','P2','Renew or replace assets expiring within 90 days','Medium','Medium',a=>a.expSoon],
+ ['Rights','P2','Add an expiry date to licensed assets','Medium','Low',a=>!!a.license&&!a.expires],
+ ['Rights','P2','Add a copyright notice','Medium','Medium',a=>!a.copyNotice],
+ ['ROT','P2','Review and remove duplicate copies','Medium','Medium',a=>a.dupe],
+ ['Findability','P2','Improve tags, description and alt text on assets scoring below 50','Medium','High',a=>a.fs<50],
+ ['Workflow','P2','Decide on assets stuck outside the Approved status','Medium','Medium',isStuck],
+ ['Naming','P2','Rename assets with generic titles','Medium','Medium',a=>a.gen],
+ ['Related','P2','Fix broken related-asset links','Medium','Low',a=>a.brk.length>0],
+ ['Taxonomy','P2','Replace tags that are not on the approved list','Medium','Medium',a=>S.apprTags.size>0&&a.tags.some(t=>!S.apprTags.has(t.toLowerCase()))],
+ ['Naming','P3','Fix other naming-rule breaks','Low','Medium',a=>a.nm.some(k=>k!=='gen')],
+ ['Related','P3','Make one-way links two-way','Low','Low',a=>a.one.length>0],
+ ['Related','P3','Link likely variants to each other','Low','Medium',a=>a.unl],
+ ['ROT','P3','Enrich or remove trivial assets','Low','Medium',a=>a.rot.T]];
+function backlog(A){const out=[];
+ for(const [area,p,txt,sev,eff,f] of BL){const rows=A.filter(f);if(!rows.length)continue;const o=topN(cnt(rows,a=>a.creator||'(unknown)'),1)[0];out.push({area,p,txt,sev,eff,rows,n:rows.length,owner:o[0],on:o[1]})}
+ out.sort((a,b)=>a.p>b.p?1:a.p<b.p?-1:b.n-a.n);out.forEach((x,i)=>x.id='B'+String(i+1).padStart(2,'0'));return out}
+PAGES.audit=()=>{const A=cur(),libs=activeLibs(),all=scoreOf(A),bl=backlog(A),p1=bl.filter(x=>x.p==='P1'),inst=sum(bl,x=>x.n);
+ const SR=[{name:'All libraries in view',lib:'',as:A,s:all},...libs.map(l=>{const as=A.filter(a=>a.lib===l);return{name:l,lib:l,as,s:scoreOf(as)}})].filter(r=>r.s);
+ const sc=r=>Math.round(r.s.o);
+ $('#view').innerHTML=`<div class="bar noprint"><button class="btn pri" id="pr">Print / save as PDF</button><button class="btn" id="lg">Download issue log (CSV)</button></div>
+ <div class="kpis">
+ ${all?kpi('Overall score',sc(SR[0])+'/100','average of 7 dimensions',kc(sc(SR[0]))):kpi('Overall score','–')}
+ ${kpi('Assets in scope',fmtN(A.length),libs.length+' libraries'+(S.stat?' · status: '+esc(S.stat):''))}
+ ${kpi('Backlog items',fmtN(bl.length),fmtN(inst)+' asset-level findings in total')}
+ ${kpi('Priority 1 items',fmtN(p1.length),fmtN(sum(p1,x=>x.n))+' findings',p1.length?'r':'g')}</div>
+ <div class="card"><h3>Library scorecard</h3><p class="mut">Each dimension is 0–100 (higher is better); the overall score is their average. Metadata completeness = average of description, alt text, tags and © notice. Naming = share with no naming issue. Rights = share without a High risk. ROT-free = share that is not redundant, obsolete or trivial. Findability = average score. Workflow = share not stuck outside Approved (&gt; ${S.th.stuck} days). Related = share with at least one related asset. Click a row to list the assets.</p><div id="au_tb"></div></div>
+ ${card('Overall score by library','au1',300)}
+ <div class="card"><h3>Action backlog</h3><p class="mut">Priority: P1 = rights exposure, cleanup status or fully unsearchable assets; P2 = medium risk or findability; P3 = housekeeping. Effort and severity are rule-of-thumb defaults, not estimates. Owner = creator of most affected assets. Click a row to list the assets.</p><div id="au_bl"></div></div>
+ <div class="card"><h3>Scope and sign-off</h3><p class="mut">Libraries: ${esc(libs.join(', '))} · Folder filter: ${esc(S.scope?[S.scope.lib,...S.scope.parts].join(' › '):'none')} · Status filter: ${esc(S.stat||'all')} · As-of date: ${fmtD(S.asOf)} · Stale after ${S.th.stale} y · Stuck after ${S.th.stuck} d · Approved statuses: ${esc(S.th.appr||'default (Approved, Published, Final)')} · Naming pattern: ${esc(S.th.pat||'none')} · Approved tags: ${S.apprTags.size?fmtN(S.apprTags.size):'none'}</p>
+ <div class="sign"><div>Prepared by / date</div><div>Reviewed by / date</div><div>Approved by / date</div></div></div>`;
+ regTable('au_tb',[{k:'name',l:'Library',v:r=>r.name},{k:'n',l:'Assets',v:r=>r.as.length,num:1,f:r=>fmtN(r.as.length)},...PN.map((n,i)=>({k:'p'+i,l:n,v:r=>m1(r.s.p[i]),num:1,f:r=>hb(Math.round(r.s.p[i]))})),{k:'o',l:'Overall',v:r=>r.s.o,num:1,f:r=>hb(sc(r))}],SR,{k:'o',dir:1,limit:50,file:'library-scorecard.csv',click:r=>gl(r.name+' — assets','',r.as,{cols:cl('t','lib','p','st','fs','rk','rot','dta')})});
+ simpleBar('au1',SR.slice(1).map(r=>[r.name,sc(r),hcol(sc(r))]),{rot:20});
+ const pb={P1:'r',P2:'o',P3:'m'};
+ regTable('au_bl',[{k:'id',l:'ID',v:x=>x.id},{k:'p',l:'Priority',v:x=>x.p,f:x=>`<span class="b ${pb[x.p]}">${x.p}</span>`},{k:'area',l:'Area',v:x=>x.area},{k:'txt',l:'Action',v:x=>x.txt,f:x=>esc(x.txt)},{k:'sev',l:'Severity',v:x=>x.sev},{k:'eff',l:'Effort',v:x=>x.eff},{k:'n',l:'Assets',v:x=>x.n,num:1,f:x=>fmtN(x.n)},{k:'sh',l:'% of view',v:x=>m1(100*x.n/A.length),num:1,f:x=>P(x.n,A.length)},{k:'ow',l:'Owner (most assets)',v:x=>x.owner,f:x=>esc(x.owner)+' ('+fmtN(x.on)+')'}],bl,{k:'p',dir:1,limit:60,file:'action-backlog.csv',click:x=>gl(x.id+' · '+x.txt,x.area+' · '+x.p,x.rows,{cols:cl('t','lib','p','st','cr','rk','rot','dta')})});
+ $('#pr').onclick=()=>window.print();
+ $('#lg').onclick=()=>dl('audit-issue-log.csv',bl.flatMap(x=>x.rows.map(a=>({'Backlog ID':x.id,Priority:x.p,Area:x.area,Issue:x.txt,Library:a.lib,'Asset ID':a.id,Title:a.title,Folder:a.path,Status:a.status,Creator:a.creator}))))};
+
+/* events */
+document.addEventListener('click',e=>{const t=e.target,c=s=>t.closest(s);let x;
+ if(x=c('[data-tab]')){S.tab=x.dataset.tab;render();return}
+ if(x=c('[data-lib]')){const n=x.dataset.lib;S.active.has(n)?S.active.delete(n):S.active.add(n);if(S.scope&&!S.active.has(S.scope.lib))S.scope=null;render();return}
+ if(c('[data-scope-clear]')){S.scope=null;render();return}
+ if(x=c('[data-drill]')){const f=DRILLS[x.dataset.drill];f&&f();return}
+ if(x=c('th[data-tb]')){const id=x.dataset.tb,tb=TB[id],k=x.dataset.k;if(tb.k===k)tb.dir*=-1;else{tb.k=k;tb.dir=tb.cols.find(q=>q.k===k).num?-1:1}drawTable(id);return}
+ if(x=c('[data-more]')){e.preventDefault();TB[x.dataset.more].limit+=200;drawTable(x.dataset.more);return}
+ if(x=c('[data-exp]')){e.preventDefault();exportTable(x.dataset.exp);return}
+ if(x=c('tr[data-i]')){const tb=TB[x.dataset.tb];if(tb&&tb.click)tb.click(tb.rows[+x.dataset.i]);return}
+ if(c('[data-dr-close]')){closeDrawer();return}
+ if(c('[data-dr-back]')){if(DR&&DR.prev)openDrawer(DR.prev);return}
+ if(c('[data-dr-explore]')){if(DR&&DR.ex)go({tab:'explorer',...DR.ex});return}
+ if(x=c('[data-mview]')){S.mm.view=x.dataset.mview;render();return}
+ if(x=c('[data-ins]')){go(S._ins[+x.dataset.ins].g);return}
+ if(x=c('[data-insl]')){const f=S._ins[+x.dataset.insl];gl(htmlTxt(f.t),insArea(f.area),f.rows,f.cols?{cols:f.cols}:{});return}
+ if(x=c('[data-insf-sev]')){S.insF.sev=x.dataset.insfSev;render();return}
+ if(c('#ins_dl')){dl('nuggets.csv',S._ins.map(x=>({Severity:SEVN[x.sev],Report:insArea(x.area),Finding:htmlTxt(x.t),Detail:htmlTxt(x.x),Assets:x.rows?x.rows.length:''})));return}
+ if(x=c('[data-crumb]')){e.preventDefault();const k=+x.dataset.crumb;S.scope=k<0?null:{lib:S.scope.lib,parts:S.scope.parts.slice(0,k)};render();return}
+ if(c('[data-miss-clear]')){S.exp.miss='';render();return}
+ if(x=c('[data-rm]')){S.files.splice(+x.dataset.rm,1);drawFiles();return}
+ if(c('#go')){analyse();return}
+});
+document.addEventListener('change',e=>{const t=e.target;
+ if(t.id==='fi'){parseFiles(t.files).then(drawFiles);t.value='';return}
+ if(t.hasAttribute('data-scope')){const l=+t.dataset.scope,v=t.value;S.scope=l===0?(v?{lib:v,parts:[]}:null):{lib:S.scope.lib,parts:S.scope.parts.slice(0,l-1).concat(v?[v]:[])};render();return}
+ if(t.hasAttribute('data-stat')){S.stat=t.value;render();return}
+ if(t.hasAttribute('data-insf-area')){S.insF.area=t.value;render();return}
+ const ex={ex_lib:'lib',ex_flag:'flag',ex_ext:'ext',ex_direct:'direct'};if(ex[t.id]){S.exp[ex[t.id]]=t.value;drawExplorer();return}
+ if(t.id==='fa_i'){S.fa.issue=t.value;drawFolders();return}
+ if(t.id==='st_lib'){S.st.lib=t.value;render();return}
+ if(t.id==='st_metric'){S.st.metric=t.value;render();return}
+ if(t.id==='st_view'){S.st.view=t.value;render()}
+});
+document.addEventListener('input',e=>{const t=e.target;
+ if(t.id==='ex_q'){S.exp.q=t.value;drawExplorer()}else if(t.id==='fa_q'){S.fa.q=t.value;drawFolders()}else if(t.id==='dr_q')drawDrawer();else if(t.dataset.lab!==undefined)S.files[+t.dataset.lab].label=t.value});
+['dragover','dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{const d=e.target.closest&&e.target.closest('#drop');if(!d)return;e.preventDefault();d.classList.toggle('hv',ev==='dragover');
+ if(ev==='drop')parseFiles([...e.dataTransfer.files].filter(f=>/\.csv$/i.test(f.name))).then(drawFiles)}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer()});
+render();
+})();
+</script></body></html>
