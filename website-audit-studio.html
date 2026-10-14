@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Website Audit Studio</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+:root{--drw:min(900px,62vw);--blue:#0b41cd;--navy:#022366;--lblue:#1482fa;--xlblue:#bde3ff;--g1:#544f4f;--g2:#706b69;--g3:#c2bab5;--g4:#dbd6d1;--g5:#f5f5f2;--n4:#fff7f5;--sr:#cc0033;--sy:#ffc414;--sg:#007c6b;--press:#6083de;--dis:#ebe8e5;--disx:#b3adaa}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--g5);color:#000;font:14px/1.5 "Roche Sans","Helvetica Neue",Helvetica,Arial,sans-serif;display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+a{color:var(--blue)}:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+aside{background:#fff;border-right:1px solid var(--g4);padding:24px 20px;position:sticky;top:0;height:100vh;overflow:auto}
+.logo b{display:block;font-size:20px;font-weight:600;color:var(--blue)}.logo span{font-size:12px;color:var(--g2)}.logo{padding-bottom:20px}
+nav button{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--g4);color:#000;padding:8px 2px;cursor:pointer;font:inherit}
+nav button:hover{color:var(--blue)}nav button.on{color:var(--blue);font-weight:600;border-bottom-color:var(--blue)}nav button:disabled{color:var(--disx);cursor:not-allowed;border-bottom-color:var(--g5)}
+.navg{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--g2);margin:18px 2px 2px}
+.navhint{font-size:12px;color:var(--g2);margin:14px 2px 0}
+main{min-width:0}
+header{display:flex;gap:10px 14px;align-items:center;padding:12px 32px;background:#fff;border-bottom:1px solid var(--g4);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+#chips{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.chip{display:inline-flex;align-items:center;height:24px;padding:0 10px;border:1px solid var(--blue);background:#fff;color:var(--blue);cursor:pointer;font-size:12px;font-weight:500;border-radius:2px;white-space:nowrap}
+.chip:hover{border-color:var(--navy);color:var(--navy)}.chip.on{background:var(--blue);color:#fff}.chip.on:hover{background:var(--navy);border-color:var(--navy);color:#fff}
+#asof{color:var(--g2);font-size:12px}#scope{flex-basis:100%;display:flex;gap:6px;align-items:center;flex-wrap:wrap}#scope:empty{display:none}#scope select{max-width:240px}
+section{padding:28px 32px 60px}
+.ph{margin:0 0 22px}.ph h1{margin:0 0 4px;font-size:40px;line-height:1.15;font-weight:300}.ph p{margin:0;color:var(--g1);max-width:760px}
+.card{background:#fff;border:1px solid var(--g4);border-radius:8px;padding:20px;margin-bottom:16px;min-width:0}
+.card h2,.card h3{margin:0 0 4px;font-size:16px;font-weight:500}.mut{color:var(--g2);font-size:12px;margin:0 0 8px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:1100px){.g2{grid-template-columns:1fr}}@media(max-width:900px){body{grid-template-columns:1fr}aside{position:static;height:auto}}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
+.kpi{position:relative;background:#fff;border:1px solid var(--g4);border-radius:8px;padding:16px}
+.kpi .l{color:var(--g2);font-size:12px;text-transform:uppercase;letter-spacing:.04em}.kpi .v{font-size:32px;font-weight:300;margin:4px 0;line-height:1.15}.kpi .s{font-size:12px;color:var(--g2)}
+.kpi.r .l::before,.kpi.o .l::before,.kpi.g .l::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.kpi.r .l::before{background:var(--sr)}.kpi.o .l::before{background:var(--sy)}.kpi.g .l::before{background:var(--sg)}
+.kpi.click{cursor:pointer}.kpi.click:hover{border-color:var(--blue);box-shadow:0 2px 10px rgba(11,65,205,.18)}
+.kpi.click{padding-bottom:26px}.kpi.click::after{content:'View list ›';position:absolute;bottom:8px;right:12px;font-size:11px;color:var(--blue);opacity:0}.kpi.click:hover::after{opacity:1}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{position:sticky;top:0;background:#fff;text-align:left;color:var(--g1);font-weight:600;cursor:pointer;padding:8px;border-bottom:1px solid var(--g3);white-space:nowrap;z-index:1}th:hover{color:var(--blue)}
+td{padding:7px 8px;border-bottom:1px solid var(--g5);vertical-align:top;max-width:380px;overflow:hidden;text-overflow:ellipsis}
+.clip{display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-width:150px;max-width:260px;white-space:normal}.none{color:var(--disx)}
+.slug{word-break:break-all;min-width:160px;max-width:300px;display:inline-block}a.slug{text-decoration:none}a.slug:hover{text-decoration:underline}
+.thumb{width:72px;height:40px;object-fit:cover;border-radius:2px;background:var(--g5);display:block}
+.clk tr[data-i]:hover{background:var(--n4);cursor:pointer}.num{text-align:right}.tw{max-height:560px;overflow:auto;border:1px solid var(--g4);border-radius:4px}
+.b{display:inline-block;padding:1px 7px;border-radius:2px;font-size:11px;margin:1px 2px 1px 0;white-space:nowrap}
+.b.r{background:var(--sr);color:#fff}.b.o{background:var(--sy);color:#000}.b.m{background:var(--xlblue);color:var(--navy)}.b.i{background:var(--g4);color:var(--g1)}.b.g{background:var(--sg);color:#fff}
+.hp{display:inline-block;min-width:30px;text-align:center;padding:1px 8px;border-radius:2px;font-size:12px}.hp.g{background:var(--sg);color:#fff}.hp.y{background:var(--sy);color:#000}.hp.r{background:var(--sr);color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:32px;padding:0 14px;background:transparent;color:var(--blue);border:1px solid var(--blue);border-radius:2px;font:inherit;font-size:13px;font-weight:500;line-height:1;cursor:pointer;white-space:nowrap}
+.btn:hover{color:var(--navy);border-color:var(--navy)}.btn:active{color:var(--press);border-color:var(--press)}
+.btn.pri{background:var(--blue);color:#fff}.btn.pri:hover{background:var(--navy);border-color:var(--navy);color:#fff}.btn.pri:active{background:var(--press);border-color:var(--press)}
+.btn.s{height:24px;padding:0 10px;font-size:12px}.btn.l{height:40px;padding:0 20px;font-size:14px}
+.btn:disabled{background:transparent;border-color:var(--g3);color:var(--disx);cursor:not-allowed}.btn.pri:disabled{background:var(--dis);border-color:var(--dis)}
+input,select,textarea{background:#fff;color:#000;border:1px solid var(--g3);border-radius:2px;padding:0 10px;font:inherit;font-size:13px;height:32px}
+textarea{height:auto;padding:8px 10px;width:100%}input:focus,select:focus,textarea:focus{outline:2px solid var(--navy);outline-offset:1px;border-color:var(--blue)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.drop{border:1px dashed var(--g3);border-radius:8px;padding:34px;text-align:center;color:var(--g2);background:#fff}.drop.hv{border-color:var(--blue);background:var(--xlblue)}
+.ins{display:flex;flex-direction:column;gap:6px}.ins h3{font-size:15px}.ins p{margin:0;color:var(--g1)}
+.insh{display:flex;align-items:center;font-size:16px;font-weight:500;margin:22px 0 10px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;background:var(--lblue)}.dot.high{background:var(--sr)}.dot.med{background:var(--sy)}
+.thr{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px}.thr label,label.fl{display:flex;flex-direction:column;gap:4px;color:var(--g2);font-size:12px}
+.sign{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px}.sign div{border-top:1px solid var(--g1);padding-top:6px;margin-top:40px;font-size:12px;color:var(--g2)}
+.subnav{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}.tip{background:var(--xlblue);color:var(--navy);border-radius:4px;padding:9px 14px;font-size:12.5px;margin:0 0 14px}
+.warn{background:#fff3cc;color:#000;border-radius:4px;padding:9px 14px;font-size:12.5px;margin:6px 0 0}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:var(--drw);max-width:100vw;background:#fff;border-left:1px solid var(--g4);box-shadow:-8px 0 24px rgba(0,0,0,.12);z-index:20;display:flex;flex-direction:column;padding:20px;overflow:hidden}
+.drawer[hidden]{display:none}.dr-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}.dr-h h3{margin:0;font-size:18px;font-weight:500}
+#dr_tb{flex:1;overflow:auto;min-height:0}#dr_tb .tw{max-height:calc(100vh - 230px)}
+body.dr-open main{margin-right:var(--drw)}@media(max-width:1100px){body.dr-open main{margin-right:0}}
+@media print{aside,header,#drawer,.noprint{display:none!important}body{display:block;background:#fff}section{padding:0}.card,.kpi{break-inside:avoid}.tw{max-height:none!important;overflow:visible!important}}
+</style></head>
+<body>
+<aside><div class="logo"><b>Corporate Website</b><span>Audit Studio · SEO &amp; content governance</span></div><nav id="nav"></nav></aside>
+<main><header><div id="chips"></div><div id="stat"></div><div id="asof"></div><div id="scope"></div></header><section id="view"></section></main>
+<div id="drawer" class="drawer" hidden>
+ <div class="dr-h"><div><h3 id="dr_t"></h3><p class="mut" id="dr_s"></p></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn s" id="dr_back" data-dr-back hidden>← Back</button><button class="btn s" data-dr-close>✕ Close</button></div></div>
+ <div class="bar"><input id="dr_q" placeholder="Filter this list…" style="flex:1;min-width:180px"><button class="btn pri" id="dr_ex" data-dr-explore>Open in Page explorer →</button></div>
+ <div id="dr_tb"></div>
+</div>
+<script>
+(()=>{
+/* helpers */
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtN=n=>Math.round(n).toLocaleString('en-US');
+const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
+const pct=(x,t)=>t?+(100*x/t).toFixed(1):0;
+const P=(x,t)=>(t?100*x/t:0).toFixed(1)+'%';
+const m1=v=>Math.round(v*10)/10;
+const rate=(a,f)=>pct(a.filter(f).length,a.length);
+const avgC=A=>A.length?100*sum(A,a=>a.meta)/A.length:0;
+const cnt=(arr,f)=>{const m=new Map();for(const x of arr){const k=f(x);if(k==null)continue;m.set(k,(m.get(k)||0)+1)}return m};
+const topN=(m,n)=>[...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,n);
+const fmtD=d=>d?d.toISOString().slice(0,10):'';
+const pd=s=>{if(!s||/^(never|null|none|n\/a|-)$/i.test(s.trim()))return null;let t=s.trim().replace(' ','T');if(/^\d{4}-\d{2}-\d{2}$/.test(t))t+='T00:00:00';if(!/(z|[+-]\d\d:?\d\d)$/i.test(t))t+='Z';const d=new Date(t);return isNaN(d)?null:d};
+const splitList=(s,re)=>s?s.split(re).map(x=>x.trim()).filter(Boolean):[];
+const short=(s,n=60)=>s.length>n?s.slice(0,n-1)+'…':s;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const nk=s=>s.toLowerCase().replace(/[\s_\-.&]+/g,'').replace(/s$/,'');
+const hk=s=>s.toLowerCase().replace(/[^a-z0-9]/g,'');
+const norm=s=>s.toLowerCase().replace(/[’‘`]/g,"'").replace(/\s+/g,' ').trim();
+const med=a=>{if(!a.length)return 0;const s=a.slice().sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2};
+const grp=(arr,kf)=>{const m=new Map();for(const a of arr){const k=kf(a);if(k==null)continue;(m.get(k)||m.set(k,[]).get(k)).push(a)}return m};
+const multi=m=>[...m.values()].filter(v=>v.length>1);
+const yr=d=>d?d.getUTCFullYear():null;
+
+/* Roche colours */
+const C={blue:'#0b41cd',navy:'#022366',lblue:'#1482fa',xlblue:'#bde3ff',g1:'#544f4f',g2:'#706b69',g3:'#c2bab5',g4:'#dbd6d1',g5:'#f5f5f2',sr:'#cc0033',sy:'#ffc414',sg:'#007c6b',orange:'#ff7d29',purple:'#e085fc',xdpurple:'#7d0096',dpurple:'#bc36f0',lorange:'#ffbd69',dorange:'#ed4a0d',xdorange:'#b22b0d'};
+const FONT='"Roche Sans","Helvetica Neue",Helvetica,Arial,sans-serif',TXT=C.g1;
+const PAL=[C.blue,C.lblue,C.navy,C.orange,C.xdpurple,C.purple,C.g2,C.lorange,C.dpurple,C.xlblue,C.dorange,C.g3];
+const DARK=[C.blue,C.navy,C.xdpurple,C.lblue,C.g2,C.xdorange,C.g1,C.dpurple];
+const hcls=v=>v>=80?'g':v>=50?'y':'r',hcol=v=>v>=80?C.sg:v>=50?C.sy:C.sr,kc=v=>({g:'g',y:'o',r:'r'})[hcls(v)];
+const hb=v=>`<b class="hp ${hcls(v)}">${v}</b>`;
+const bdg=(arr,cls)=>arr.map(x=>`<span class="b ${cls}">${esc(x)}</span>`).join('');
+
+/* column mapping: normalised CSV header → field. Several aliases so other CMS exports also load. */
+const COLS={id:['id','storyid','uuid','entryid','pageid'],slug:['slug','fullslug','url','path','pagepath','urlpath'],name:['name','pagename','entryname'],status:['status','workflowstatus','state','publishstatus'],
+ upd:['lastupdate','updatedat','modifiedat','lastmodified','lastupdated'],pub:['lastpublish','publishedat','lastpublished','publishdate'],by:['lastupdateby','updatedby','modifiedby','lastmodifiedby','lasteditor'],
+ tT:['teasertitle'],tO:['teaseroverline','teasereyebrow'],tD:['teaserdescription','teasertext'],tI:['teaserimage'],sT:['seotitle','metatitle','pagetitle'],sD:['seodescription','metadescription'],
+ oT:['ogtitle','socialtitle'],oD:['ogdescription','socialdescription'],oI:['ogimage','socialimage','shareimage'],hide:['hidefromsearchengines','noindex','hidefromsearch','robotsnoindex']};
+const COLN={id:'ID',slug:'Slug',name:'Name',status:'Status',upd:'Last Update',pub:'Last Publish',by:'Last Update By',tT:'Teaser Title',tO:'Teaser Overline',tD:'Teaser Description',tI:'Teaser Image',sT:'SEO Title',sD:'SEO Description',oT:'OG Title',oD:'OG Description',oI:'OG Image',hide:'Hide From Search Engines'};
+const LANGS=new Set('en de fr es it pt nl ja zh ko ru pl tr sv da fi no nb cs hu ro el he ar'.split(' '));
+const LNAME={en:'English',de:'German',fr:'French',es:'Spanish',it:'Italian',pt:'Portuguese',nl:'Dutch',ja:'Japanese',zh:'Chinese',ko:'Korean',ru:'Russian',pl:'Polish',tr:'Turkish',sv:'Swedish',da:'Danish',fi:'Finnish',no:'Norwegian',nb:'Norwegian',cs:'Czech',hu:'Hungarian',ro:'Romanian',el:'Greek',he:'Hebrew',ar:'Arabic'};
+const LN=c=>c?(LNAME[c]||c.toUpperCase()):'(unknown)';
+/* very small stop-word language guesser; only used to flag "likely" mismatches */
+const SW={en:'the and of to in for with is on by are from that this its at be has have our will was were',de:'der die das und mit für von zu im ist den des auf eine ein bei sich nicht wird werden über zur zum dem auch',
+ fr:'le les et des pour avec une dans est du sur par au aux qui pas ce son ses nous sont',es:'el los las y con una es del se su sus como más al lo están ha',pt:'os e com uma em é do da dos das não mais ao seu sua são foi'};
+const SWS=Object.fromEntries(Object.entries(SW).map(([k,v])=>[k,new Set(v.split(' '))]));
+function detect(t){const w=t.toLowerCase().match(/[a-zà-ÿœß]+/g)||[];if(w.length<5)return'';const sc={};for(const k in SWS){let n=0;for(const x of w)if(SWS[k].has(x))n++;sc[k]=n}
+ const r=Object.entries(sc).sort((a,b)=>b[1]-a[1]);return r[0][1]>=3&&r[0][1]>=2*r[1][1]?r[0][0]:''}
+const PH=/^(test(ing)?|testmail|page title|seo (title|description)|meta( title| description)?|m ?e ?t ?a|title|description|lorem ipsum.*|placeholder|tbd|todo|xxx+|dummy|untitled|new page|n\/a|-+|\.+)$/i;
+const isPH=s=>{if(!s)return false;const t=s.replace(/^[^|]{1,30}\|\s*/,'').trim();return PH.test(t)||/lorem ipsum/i.test(s)||/^(TEST\b|Testmail\b)/.test(s)};
+const GLUE=/[a-z]{2}[.!?;:]\d{0,2}[A-Z][a-z]|[a-z]{3}\d{1,2}[A-Z][a-z]/;
+const MARK=/<\/?[a-z][^>]*>|&(?:[a-z]{2,8}|#\d{2,5});|[\r\n]/i;
+const LEAFW=new Set('test old copy tmp temp backup dummy draft wip lorem new'.split(' '));
+const glueEx=s=>{const m=s.match(GLUE);return m?'…'+s.slice(Math.max(0,m.index-22),m.index+m[0].length+18)+'…':''};
+
+const FLAGS={noBoth:['No SEO title AND no description','r'],noT:['Missing SEO title','m'],noD:['Missing SEO description','m'],ph:['Placeholder text','r'],
+ longT:['SEO title too long','o'],shortT:['SEO title too short','i'],longD:['Description too long','o'],shortD:['Description too short','i'],trunc:['Auto-truncated description (…)','o'],
+ glue:['Missing space between sentences','o'],markup:['HTML, entities or line breaks','o'],spc:['Double or trailing spaces','i'],
+ dupSlug:['Slug used twice','r'],dupT:['Duplicate SEO title','o'],dupD:['Duplicate description','o'],dupe:['Possible duplicate page','o'],
+ noImg:['No teaser image','m'],defImg:['Default / placeholder image','i'],noOg:['No OG image','i'],
+ neverPub:['Never published','o'],abandon:['Abandoned draft','r'],pend:['Unpublished changes','o'],noindex:['Hidden from search engines','i'],hideUnset:['Search setting empty','i'],
+ badFolder:['Non-production section','r'],langMis:['Text language ≠ URL language (likely)','o'],untr:['Untranslated copy','o'],orphan:['Translation without source page','i'],stale:['Stale','i'],sys:['Updated by system account','i']};
+const NOBADGE=new Set(['noOg','sys','hideUnset']);
+const CLEAN=['abandon','badFolder','ph','dupSlug'];
+const QUAL={longT:'SEO title too long',shortT:'SEO title too short',longD:'Description too long',shortD:'Description too short',trunc:'Auto-truncated description',glue:'Missing space between sentences',markup:'HTML, entities or line breaks',spc:'Double or trailing spaces',ph:'Placeholder text'};
+const ISS={deep:['Deep nesting','Flatten hierarchy'],naming:['Non-production name (test / unpublished…)','Move out of the live tree or delete'],chr:['Uppercase, underscore or special character','Rename (add a redirect)'],nearDup:['Near-duplicate sibling','Merge with sibling'],
+ tiny:['Tiny section','Merge into parent/sibling'],passThrough:['Pass-through (1 subsection, no pages)','Flatten'],oversized:['Oversized section','Split into subsections'],stale:['Stale (no recent updates)','Review content'],
+ lowMeta:['Low metadata (<50%)','Enrich SEO & teaser fields'],drafts:['Mostly never-published drafts (>50%)','Publish or delete drafts']};
+const TABS=[['load','Load data'],['#','Audit'],['overview','Overview'],['insights','Nuggets'],['structure','Structure map'],['folders','Section audit'],['meta','SEO metadata'],['life','Publishing lifecycle'],['dups','Duplicates & clutter'],['social','Teasers & social'],['people','People & activity'],
+ ['#','Governance'],['naming','URL & naming'],['lang','Language & translations'],['rights','Indexing risk'],['rot','ROT analysis'],['find','SEO readiness'],['aging','Draft ageing'],['audit','Audit pack & backlog'],['#','Tools'],['explorer','Page explorer']];
+const TD={load:['Load data','Drop in the CMS page exports, name each site, then set the audit thresholds, SEO rules and governance rules.'],overview:['Overview','Size, structure, languages and overall health of the website.'],insights:['Nuggets','Automatically detected findings, ranked by severity.'],
+ structure:['Structure map','Explore the URL hierarchy by page count, live pages or drafts.'],folders:['Section audit','Section health scores, issues and a clean-up worklist.'],meta:['SEO metadata','How complete and how well-formed SEO titles, descriptions and teaser fields are.'],
+ life:['Publishing lifecycle','Status, publishing dates, pending changes and search-engine settings.'],dups:['Duplicates & clutter','Duplicate slugs, titles and descriptions, draft copies and placeholder text.'],social:['Teasers & social','Teaser images, overlines and Open Graph fields used when pages are shared or listed.'],
+ people:['People & activity','Who last updated pages, and when.'],explorer:['Page explorer','Search, filter and inspect pages and sections.'],
+ naming:['URL & naming','Which URLs and section names break common URL rules, and how SEO titles are branded.'],lang:['Language & translations','URL languages, translation pairs, untranslated copies and likely language mismatches.'],
+ rights:['Indexing risk','Risk register for what search engines may index or miss.'],rot:['ROT analysis','Redundant, Obsolete and Trivial pages, with a recommendation per section.'],find:['SEO readiness','How ready each page is to rank and be shared (0–100).'],
+ aging:['Draft ageing','How long drafts have waited without being published.'],audit:['Audit pack & backlog','Scorecard, prioritised action backlog and exports for sign-off.']};
+const NMR={up:['Uppercase letters in the URL',a=>/[A-Z]/.test(a.slug)],und:['Underscore in the URL',a=>/_/.test(a.slug)],chr:['Characters other than a–z, 0–9 and hyphens',a=>/[^A-Za-z0-9\-\/_]/.test(a.slug)],
+ dbl:['Double or edge hyphens',a=>/--|(^|\/)-|-(\/|$)/.test(a.slug)],len:['URL longer than the length limit',a=>a.slug.length>S.th.slugMax],deep:['URL deeper than the nesting limit',a=>a.segs.length>S.th.deep],
+ twin:['Same URL with and without a trailing slash',a=>a.twin],smell:['Page name contains test / old / copy / new (verify)',a=>a.leafSmell],pat:['Does not match your URL pattern',a=>S.re?!S.re.test(a.slug):false]};
+const NMF={smell:['Non-production name (test / old / unpublished…)',n=>isNP(n.name)],chr:['Uppercase, underscore or special characters',n=>/[^a-z0-9\-]/.test(n.name)],dup:['Near-duplicate sibling section',n=>!!n.nearDup]};
+const uT=a=>!!a.sT&&!a.phT,uD=a=>!!a.sD&&!a.phD;
+const RK={np:['Live page in a non-production section','h',a=>a.live&&a.badFolder],ph:['Live page with placeholder SEO text','h',a=>a.live&&a.ph],slug:['Slug shared with another entry','h',a=>a.dupSlug],
+ noTD:['Indexable page missing SEO title or description','m',a=>a.ixb&&(!uT(a)||!uD(a))],dupT:['Indexable page with a duplicate SEO title','m',a=>a.ixb&&a.dupT],pend:['Live page with unpublished changes','m',a=>a.pend],
+ hid:['Live page hidden from search engines (verify intent)','l',a=>a.live&&a.noindex],unset:['Search-engine setting empty','l',a=>!a.hide]};
+const RL=['None','Low','Medium','High'],RLC=['i','m','o','r'],ROTN={R:'Redundant',O:'Obsolete',T:'Trivial'};
+const FC=[['SEO title',25,a=>uT(a)?(!a.longT&&!a.shortT?25:12):0],['SEO description',25,a=>uD(a)?(!a.longD&&!a.shortD&&!a.trunc?25:12):0],['Unique title',10,a=>uT(a)&&!a.dupT?10:0],
+ ['Indexable',10,a=>!a.noindex&&!a.badFolder?10:0],['Share image',10,a=>a.cImg||a.cOg?10:0],['Clean text',10,a=>!a.glue&&!a.markup&&!a.ph?10:0],['Clean URL',10,a=>!a.nm.length?10:0]];
+const MCORE=[['SEO title',uT],['SEO description',uD],['Teaser title',a=>!!a.tT],['Teaser description',a=>!!a.tD],['Custom teaser image',a=>a.cImg]];
+
+/* state */
+const DEF_TH={stale:3,deep:4,tiny:2,big:500,slugMax:75,tMin:30,tMax:60,dMin:70,dMax:160,stuck:180,lang:'en',img:'placeholder|rochelogo|default|fallback|dummy',pat:'',tpat:'',live:'',
+ sys:'robot|automation|\\bbot\\b|system|noreply|no-reply|migrat|impersonal|service',np:'test, tests, lorem-ipsum, lorem, dummy, unpublished, upcoming-content, sandbox, playground, demo, temp, tmp, old, copy, backup, draft, drafts, wip, trash',
+ folders:true,comp:'global-components',asof:''};
+const S={files:[],assets:[],excl:[],libs:[],folders:new Map(),dups:[],viewDups:[],active:new Set(),scope:null,stat:'',tab:'load',asOf:new Date(),th:{...DEF_TH},
+ re:null,tre:null,imgRe:/placeholder/i,sysRe:/robot/i,npW:new Set(),live:new Set(['published','published with changes']),byId:new Map(),
+ exp:{q:'',lib:'',flag:'',status:'',lang:'',folder:'',direct:'',miss:''},fa:{q:'',issue:''},st:{lib:'',metric:'count',view:'treemap'},mm:{view:'overview',q:'longT'},insF:{sev:'',area:''}};
+const PAGES={},TB={};let CH=[],DR=null,DRILLS=Object.create(null),VA=[],VF=null;
+const isNP=seg=>{if(!seg||seg==='(root)')return false;const s=seg.toLowerCase(),t=s.split(/[-_]+/).filter(Boolean);return S.npW.has(s)||S.npW.has(t[0])||S.npW.has(t[t.length-1])};
+const topOf=ps=>{const p=ps[0]==='(root)'?[]:ps.slice(LANGS.has((ps[0]||'').toLowerCase())?1:0);return p[0]||'(root)'};
+
+/* charts */
+const AX=(o={})=>({axisLine:{lineStyle:{color:C.g3}},axisLabel:{color:TXT},splitLine:{lineStyle:{color:C.g4,opacity:.6}},...o});
+function ec(id,opt){const el=document.getElementById(id);if(!el)return;const c=echarts.init(el);
+ c.setOption({backgroundColor:'transparent',color:PAL,textStyle:{color:TXT,fontFamily:FONT},...opt,tooltip:{backgroundColor:'#fff',borderColor:C.g4,textStyle:{color:'#000'},extraCssText:'box-shadow:0 2px 10px rgba(0,0,0,.15);border-radius:4px',...(opt.tooltip||{})}});CH.push(c);return c}
+window.addEventListener('resize',()=>CH.forEach(c=>c.resize()));
+function stackBy(id,A,catFn,serFn,o={}){
+ if(o.maxCats){const keep=topN(cnt(A,catFn),o.maxCats).map(x=>x[0]),ks=new Set(keep),f0=catFn;catFn=a=>{const c=f0(a);return c==null?null:ks.has(c)?c:'Other'};if(!o.catSort)o={...o,catSort:(a,b)=>(a==='Other')-(b==='Other')||keep.indexOf(a)-keep.indexOf(b)}}
+ const cm=new Map(),st=new Map();
+ for(const a of A){const c=catFn(a),s=serFn(a);if(c==null||s==null)continue;st.set(s,(st.get(s)||0)+1);let m=cm.get(c);if(!m)cm.set(c,m=new Map());m.set(s,(m.get(s)||0)+1)}
+ const sers=[...st.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]),N=o.top||10,keep=sers.slice(0,N),rest=new Set(sers.slice(N));
+ const cats=[...cm.keys()].sort(o.catSort||((a,b)=>a>b?1:a<b?-1:0)),tot=new Map(cats.map(c=>[c,sum([...cm.get(c).values()],x=>x)]));
+ const val=(c,f)=>{let v=0;for(const [k,n] of cm.get(c))if(f(k))v+=n;return o.pct?pct(v,tot.get(c)):v};
+ const series=keep.map(s=>({name:String(s),type:'bar',stack:'t',emphasis:{focus:'series'},...(o.colors&&o.colors[s]?{itemStyle:{color:o.colors[s]}}:{}),data:cats.map(c=>val(c,k=>k===s))}));
+ if(rest.size)series.push({name:'Other',type:'bar',stack:'t',itemStyle:{color:C.g3},data:cats.map(c=>val(c,k=>rest.has(k)))});
+ const cx={type:'category',data:cats.map(String),...AX(),...(o.h?{inverse:true}:{})};if(o.h)cx.axisLabel={color:TXT,width:o.lw||200,overflow:'truncate'};else if(o.rot)cx.axisLabel={color:TXT,interval:0,rotate:o.rot};
+ const vx={type:'value',...AX(),...(o.pct?{max:100}:{})};
+ const c=ec(id,{tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},legend:{top:0,type:'scroll',textStyle:{color:TXT}},grid:{left:10,right:20,top:40,bottom:20,containLabel:true},xAxis:o.h?vx:cx,yAxis:o.h?cx:vx,series});
+ if(c&&o.on)c.on('click',p=>{if(p.componentType==='series')o.on(p.name,p.seriesName,{catFn,serFn,rest})});return c}
+function stk(id,cats,ser,o={}){const c=ec(id,{tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},legend:{top:0,type:'scroll',textStyle:{color:TXT}},grid:{left:10,right:20,top:40,bottom:20,containLabel:true},
+ xAxis:o.h?{type:'value',...AX(),...(o.pct?{max:100}:{})}:{type:'category',data:cats,...AX({axisLabel:{color:TXT,interval:0,rotate:o.rot||0}})},
+ yAxis:o.h?{type:'category',inverse:true,data:cats,axisLabel:{color:TXT,width:220,overflow:'truncate'},axisLine:{lineStyle:{color:C.g3}}}:{type:'value',...AX(),...(o.pct?{max:100}:{})},
+ series:ser.map(s=>({name:s.n,type:'bar',stack:'t',itemStyle:{color:s.c},data:s.d}))});
+ if(c&&o.on)c.on('click',p=>{if(p.componentType==='series')o.on(p.name,p.seriesName)});return c}
+function simpleBar(id,pairs,o={}){
+ const c=ec(id,{tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},grid:{left:10,right:20,top:20,bottom:20,containLabel:true},
+  xAxis:o.h?{type:'value',...AX(),...(o.max?{max:o.max}:{})}:{type:'category',data:pairs.map(p=>p[0]),...AX(o.rot!=null||o.all?{axisLabel:{color:TXT,interval:0,rotate:o.rot||0}}:{})},
+  yAxis:o.h?{type:'category',inverse:true,data:pairs.map(p=>p[0]),axisLabel:{color:TXT,width:o.lw||220,overflow:'truncate'},axisLine:{lineStyle:{color:C.g3}}}:{type:'value',...AX(),...(o.max?{max:o.max}:{})},
+  series:[{type:'bar',data:pairs.map(p=>({value:p[1],itemStyle:p[2]?{color:p[2]}:undefined})),itemStyle:{color:C.blue}}]});
+ if(c&&o.onClick)c.on('click',p=>o.onClick(p.name,p.value,p));return c}
+function pie(id,pairs,o={}){const c=ec(id,{tooltip:{trigger:'item',formatter:'{b}: {c} ({d}%)'},legend:{type:'scroll',bottom:0,textStyle:{color:TXT}},series:[{type:'pie',radius:['42%','70%'],center:['50%','45%'],data:pairs.map(p=>({name:String(p[0]),value:p[1],...(p[2]?{itemStyle:{color:p[2]}}:{})})),label:{color:TXT},itemStyle:{borderColor:'#fff',borderWidth:2}}]});
+ if(c&&o.onClick)c.on('click',p=>o.onClick(p.name));return c}
+function heat(id,xs,ys,data,o={}){
+ const tipHtml=p=>{const v=p.value;return (o.tip?o.tip(v[0],v[1],v[2],v[3],v[4]):`${esc(ys[v[1]])}<br>${esc(xs[v[0]])}: <b>${v[2].toFixed(1)}%</b>`)+(o.onClick?'<br><span style="color:#706b69">Click to list the pages missing this field</span>':'')};
+ const c=ec(id,{tooltip:{position:'top',confine:true,extraCssText:'box-shadow:0 2px 10px rgba(0,0,0,.15);border-radius:4px;white-space:normal;max-width:320px;line-height:1.5',formatter:tipHtml},grid:{left:10,right:30,top:20,bottom:70,containLabel:true},
+  xAxis:{type:'category',data:xs,axisLabel:{color:TXT,rotate:o.rot||0,interval:0},axisLine:{lineStyle:{color:C.g3}}},yAxis:{type:'category',data:ys.map(y=>short(y,50)),axisLabel:{color:TXT,fontSize:10},axisLine:{lineStyle:{color:C.g3}}},
+  visualMap:{type:'piecewise',orient:'horizontal',left:'center',bottom:0,textStyle:{color:TXT},pieces:[{lt:50,color:C.sr,label:'< 50%'},{gte:50,lt:80,color:C.sy,label:'50–79%'},{gte:80,color:C.sg,label:'≥ 80%'}],dimension:2},
+  series:[{type:'heatmap',data:data.map(d=>({value:d,label:{color:(d[2]>=50&&d[2]<80)?'#000':'#fff'}})),label:{show:true,fontSize:10,formatter:p=>p.value[2].toFixed(1)+'%'},itemStyle:{borderColor:'#fff',borderWidth:1}}]});
+ if(c&&o.onClick)c.on('click',p=>{if(p.value)o.onClick(p.value[0],p.value[1],p.value[2])});return c}
+const card=(t,id,h=320,sub='')=>`<div class="card"><h3>${t}</h3>${sub?`<p class="mut">${sub}</p>`:''}<div id="${id}" style="height:${h}px"></div></div>`;
+const kpi=(l,v,s='',c='',d='')=>`<div class="kpi ${c} ${d?'click':''}" ${d?`data-drill="${d}"`:''}><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
+function K(key,fn,n){if(n===0)return'';DRILLS[key]=fn;return key}
+const kp=(l,v,s,c,k,fn,n)=>kpi(l,v,s,c,K(k,fn,n));
+const topSecs=(A,n=12)=>topN(cnt(A,a=>a.top),n).map(x=>x[0]);
+
+/* tables */
+function regTable(id,cols,rows,opt={}){const old=TB[id];TB[id]={cols,rows,k:old?old.k:(opt.k||cols[0].k),dir:old?old.dir:(opt.dir||-1),limit:opt.limit||150,click:opt.click,file:opt.file||id+'.csv'};drawTable(id)}
+function sortedIdx(t){const c=t.cols.find(c=>c.k===t.k),idx=t.rows.map((r,i)=>i);if(c){const v=t.rows.map(r=>c.v(r));idx.sort((a,b)=>(v[a]>v[b]?1:v[a]<v[b]?-1:0)*t.dir)}return idx}
+function drawTable(id){const t=TB[id],el=document.getElementById(id);if(!el)return;const idx=sortedIdx(t),shown=idx.slice(0,t.limit);
+ el.innerHTML=`<div class="tw"><table class="${t.click?'clk':''}"><thead><tr>${t.cols.map(c=>`<th data-tb="${id}" data-k="${c.k}" class="${c.num?'num':''}">${c.l}${t.k===c.k?(t.dir>0?' ▲':' ▼'):''}</th>`).join('')}</tr></thead><tbody>${shown.map(i=>`<tr data-tb="${id}" data-i="${i}">${t.cols.map(c=>`<td class="${c.num?'num':''}">${c.f?c.f(t.rows[i]):esc(c.v(t.rows[i]))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+ <p class="mut" style="margin-top:8px">Showing ${fmtN(shown.length)} of ${fmtN(t.rows.length)} rows ${shown.length<t.rows.length?`· <a href="#" data-more="${id}">show 200 more</a>`:''} · <a href="#" data-exp="${id}">export CSV</a></p>`}
+function exportTable(id){const t=TB[id],idx=sortedIdx(t);dl(t.file,idx.map(i=>{const o={};t.cols.forEach(c=>o[c.l]=(c.x||c.v)(t.rows[i]));return o}))}
+function dl(name,rows){const u=URL.createObjectURL(new Blob([Papa.unparse(rows)],{type:'text/csv'}));const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+const badges=a=>a.flags.filter(f=>!NOBADGE.has(f)).map(f=>`<span class="b ${FLAGS[f][1]}">${FLAGS[f][0]}</span>`).join('');
+const issBadges=n=>n.issues.map(i=>`<span class="b ${['naming','drafts','stale'].includes(i)?'r':['lowMeta','tiny'].includes(i)?'m':'o'}">${ISS[i][0]}</span>`).join('');
+const txc=s=>s?`<div class="clip" title="${esc(s)}">${esc(s)}</div>`:'<span class="none" title="Empty">—</span>';
+const thumb=u=>u?`<img class="thumb" loading="lazy" src="${esc(u)}" alt="" title="${esc(u)}">`:'<span class="none">—</span>';
+const lenB=(n,lo,hi)=>`<b class="hp ${!n?'r':n<lo||n>hi?'y':'g'}">${n}</b>`;
+const stB=a=>`<span class="b ${a.pend?'o':a.live?'g':'i'}">${esc(a.status||'(none)')}</span>`;
+const slugL=a=>a.url?`<a class="slug" href="${esc(a.url)}" target="_blank" rel="noopener" data-ext title="Open the live URL in a new tab">${esc(a.slug)}</a>`:`<span class="slug">${esc(a.slug)}</span>`;
+const AC={u:{k:'u',l:'URL slug',v:a=>a.slug,f:slugL},t:{k:'t',l:'Name',v:a=>a.name},lib:{k:'lib',l:'Site',v:a=>a.lib},p:{k:'p',l:'Section',v:a=>a.path},lg:{k:'lg',l:'Lang',v:a=>a.lang},
+ st:{k:'st',l:'Status',v:a=>a.status||'(none)',f:stB},ed:{k:'ed',l:'Last updated by',v:a=>a.ed},mo:{k:'mo',l:'Last update',v:a=>fmtD(a.upd)},pu:{k:'pu',l:'Last publish',v:a=>a.pub?fmtD(a.pub):'never'},id:{k:'id',l:'ID',v:a=>a.id},
+ fl:{k:'fl',l:'Flags',v:a=>a.flags.map(f=>FLAGS[f][0]).join('; '),f:badges},sT:{k:'sT',l:'SEO title',v:a=>a.sT,f:a=>txc(a.sT)},sD:{k:'sD',l:'SEO description',v:a=>a.sD,f:a=>txc(a.sD)},
+ lT:{k:'lT',l:'Title chars',v:a=>a.sT.length,num:1,f:a=>lenB(a.sT.length,S.th.tMin,S.th.tMax)},lD:{k:'lD',l:'Desc. chars',v:a=>a.sD.length,num:1,f:a=>lenB(a.sD.length,S.th.dMin,S.th.dMax)},
+ tT:{k:'tT',l:'Teaser title',v:a=>a.tT,f:a=>txc(a.tT)},tO:{k:'tO',l:'Overline',v:a=>a.tO,f:a=>txc(a.tO)},tD:{k:'tD',l:'Teaser description',v:a=>a.tD,f:a=>txc(a.tD)},
+ tI:{k:'tI',l:'Teaser image',v:a=>a.tI,f:a=>thumb(a.tI)},oI:{k:'oI',l:'OG image',v:a=>a.oI,f:a=>thumb(a.oI)},oT:{k:'oT',l:'OG title',v:a=>a.oT,f:a=>txc(a.oT)},hd:{k:'hd',l:'Hidden from search',v:a=>a.hide||'(empty)'},
+ tl:{k:'tl',l:'Detected text language',v:a=>a.tl?LN(a.tl):'',f:a=>a.tl?esc(LN(a.tl)):'<span class="none">—</span>'},src:{k:'src',l:'Source page',v:a=>a.src?a.src.slug:'',f:a=>a.src?`<span class="slug">${esc(a.src.slug)}</span>`:'<span class="none">—</span>'},
+ srcT:{k:'srcT',l:'Source SEO title',v:a=>a.src?a.src.sT:'',f:a=>txc(a.src?a.src.sT:'')}};
+const cl=(...ks)=>ks.flatMap(k=>k==='seo'?[AC.sT,AC.sD]:[AC[k]]);
+const rotS=a=>['R','O','T'].filter(k=>a.rot[k]).map(k=>ROTN[k]).join(', '),aR=a=>a.rot.R||a.rot.O||a.rot.T,rkTxt=a=>a.rk.map(k=>RK[k][0]).join('; ');
+Object.assign(AC,{age:{k:'age',l:'Days since update',v:a=>a.age==null?-1:a.age,num:1,f:a=>a.age==null?'–':fmtN(a.age)},
+ rk:{k:'rk',l:'Risk',v:a=>a.rl*100+a.rk.length,x:a=>RL[a.rl]+': '+rkTxt(a),f:a=>`<span class="b ${RLC[a.rl]}">${RL[a.rl]}</span> ${esc(rkTxt(a))}`},
+ nm:{k:'nm',l:'URL issues',v:a=>a.nm.map(k=>NMR[k][0]).join('; '),f:a=>bdg(a.nm.map(k=>NMR[k][0]),'o')},
+ rot:{k:'rot',l:'ROT',v:a=>rotS(a),f:a=>bdg(rotS(a).split(', ').filter(Boolean),'o')},
+ fs:{k:'fs',l:'Readiness',v:a=>a.fs,num:1,f:a=>hb(a.fs)},fw:{k:'fw',l:'Weak spots',v:a=>a.fsw.join('; '),f:a=>bdg(a.fsw,'m')},
+ q:{k:'q',l:'Quality issues',v:a=>Object.keys(QUAL).filter(k=>a[k]).map(k=>QUAL[k]).join('; '),f:a=>bdg(Object.keys(QUAL).filter(k=>a[k]).map(k=>QUAL[k]),'o')}});
+const FCOLS=[{k:'lib',l:'Site',v:x=>x.n.lib},{k:'p',l:'Section',v:x=>x.n.path},{k:'n',l:'Pages',v:x=>x.n.total,num:1},{k:'r',l:'Issues',v:x=>x.r.map(k=>NMF[k][0]).join('; '),f:x=>bdg(x.r.map(k=>NMF[k][0]),'o')}];
+
+/* loading & building */
+function guessName(fn){if(/rcom/i.test(fn))return'roche.com';return fn.replace(/\.csv$/i,'').replace(/\s*-\s*data$/i,'')}
+const guessBase=n=>/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(n)?'https://www.'+n.replace(/^www\./i,'')+'/':'';
+function parseFiles(list){return Promise.all([...list].map(f=>new Promise(res=>Papa.parse(f,{header:true,skipEmptyLines:true,complete:r=>{const label=guessName(f.name);S.files.push({name:f.name,label,base:guessBase(label),guessed:true,res:r});res()}}))))}
+function build(){
+ S.assets=[];S.excl=[];S.libs=[];const def=S.th.lang,comp=new Set(splitList(S.th.comp,/[,;\n]/).map(x=>x.toLowerCase()));
+ S.files.forEach(f=>{const fields=f.res.meta.fields||[],km={};fields.forEach(k=>{const n=hk(k);if(n&&!(n in km))km[n]=k});
+  const col={},used=new Set();for(const [key,al] of Object.entries(COLS))for(const a of al)if(km[a]){col[key]=km[a];used.add(km[a]);break}
+  const custom=fields.filter(k=>k.trim()&&!used.has(k)),base=(f.base||'').trim(),bu=base?base.replace(/\/+$/,'')+'/':'';
+  S.libs.push({name:f.label,base:bu,custom,rows:f.res.data.length,file:f.name,missing:Object.keys(COLS).filter(k=>!col[k]).map(k=>COLN[k])});
+  const site=[];
+  for(const r of f.res.data){const raw=k=>col[k]&&r[col[k]]!=null?String(r[col[k]]):'',g=k=>raw(k).trim();
+   const slug=g('slug').replace(/^\/+/,''),ix=/\/$/.test(slug),clean=slug.replace(/\/+$/,''),segs=clean?clean.split('/'):[];
+   const by=g('by'),edc=by.replace(/\|.*$/,'').replace(/^(.+?)\.[a-z0-9-]+\.(com|net|org|ch|de|io)$/i,(m,p)=>p.includes('@')?m:p)||'(unknown)';
+   const status=g('status'),hv=g('hide');
+   const a={lib:f.label,id:g('id'),slug,ix,segs,name:g('name'),status,live:S.live.has(status.toLowerCase()),pend:/with changes/i.test(status),
+    hide:/^(yes|true|1|y)$/i.test(hv)?'Yes':/^(no|false|0|n)$/i.test(hv)?'No':'',upd:pd(g('upd')),pub:pd(g('pub')),edRaw:by,ed:edc,
+    etype:!by||/^unknown$/i.test(by)?'Unknown':S.sysRe.test(by)?'System / service':'Person',
+    sT:g('sT'),sD:g('sD'),rawT:raw('sT'),rawD:raw('sD'),tT:g('tT'),tO:g('tO'),tD:g('tD'),tI:g('tI'),oT:g('oT'),oD:g('oD'),oI:g('oI'),custom:{}};
+   a.noindex=a.hide==='Yes';a.ixb=a.live&&!a.noindex;a.url=bu?bu+slug:'';
+   custom.forEach(k=>a.custom[k]=r[k]!=null?String(r[k]).trim():'');
+   a.parts=(ix?segs:segs.slice(0,-1));if(!a.parts.length)a.parts=['(root)'];a.path=a.parts.join(' / ');a.top=topOf(a.parts);a.leaf=ix||!segs.length?'':segs[segs.length-1];
+   const s0=(segs[0]||'').toLowerCase();if(LANGS.has(s0)){a.lang=s0;a.base=segs.slice(1).join('/')+(ix&&segs.length>1?'/':'')}else{a.lang=def;a.base=slug}
+   const lt=a.leaf.toLowerCase().split(/[-_]+/).filter(Boolean);a.leafSmell=lt.length>0&&(LEAFW.has(lt[0])||LEAFW.has(lt[lt.length-1]));
+   a.tl=detect([a.sT,a.sD,a.tD!==a.sD?a.tD:''].join(' '));
+   a.hay=(a.slug+' '+a.name+' '+a.sT+' '+a.ed+' '+a.edRaw+' '+a.id).toLowerCase();
+   site.push(a)}
+  // language suffix (…-es, …-pt) counts only when the unsuffixed page exists in the same site
+  const ss=new Set(site.map(a=>a.slug.toLowerCase()));
+  for(const a of site){if(a.lang!==def||!a.leaf)continue;const m=a.leaf.match(/^(.+)-([a-z]{2})$/i);if(!m||!LANGS.has(m[2].toLowerCase())||m[2].toLowerCase()===def)continue;
+   const b=a.segs.slice(0,-1).concat(m[1]).join('/');if(ss.has(b.toLowerCase())){a.lang=m[2].toLowerCase();a.base=b}}
+  // entries that behave like CMS folders (children below them, never published, no SEO/teaser text) and shared-component entries are not pages
+  const par=new Set();for(const a of site)for(let i=1;i<(a.ix?a.segs.length+1:a.segs.length);i++)par.add(a.segs.slice(0,i).join('/').toLowerCase());
+  let nf=0,nc=0;
+  for(const a of site){const fol=S.th.folders&&!a.ix&&a.segs.length&&par.has(a.segs.join('/').toLowerCase())&&!a.live&&!a.pub&&!a.sT&&!a.sD&&!a.tT&&!a.tD,cp=a.segs.slice(0,a.ix?a.segs.length:-1).some(s=>comp.has(s.toLowerCase()));
+   if(fol||cp){a.excl=fol?'Looks like a CMS folder record':'Shared component, not a page';fol?nf++:nc++;S.excl.push(a)}else S.assets.push(a)}
+  Object.assign(S.libs[S.libs.length-1],{nFol:nf,nComp:nc})})}
+const exclNote=()=>{if(!S.excl.length)return'';const nf=S.excl.filter(a=>a.excl.startsWith('Looks')).length,nc=S.excl.length-nf;
+ return `<p class="tip">${[nf?`<b>${fmtN(nf)}</b> entries look like CMS folder records (child pages below them, never published, no SEO or teaser text)`:'',nc?`<b>${fmtN(nc)}</b> entries are shared components (${esc(S.th.comp)})`:''].filter(Boolean).join(' and ')}, so they are left out of every count. Change this on the Load screen. <button class="btn s" data-drill="${K('excl',()=>openDrawer({title:'Entries left out of the counts',sub:'Not treated as pages',rows:S.excl,unit:'entries',total:0,cols:[AC.u,AC.lib,AC.t,{k:'w',l:'Why',v:a=>a.excl},AC.st,AC.mo,AC.ed,AC.id],click:()=>{}}),1)}">View them</button></p>`};
+function computeAll(){
+ const th=S.th,asOf=S.asOf,cut=new Date(asOf);cut.setUTCFullYear(cut.getUTCFullYear()-th.stale);
+ S.folders=new Map();
+ for(const a of S.assets)for(let i=1;i<=a.parts.length;i++){const ps=a.parts.slice(0,i),p=ps.join(' / '),k=a.lib+'\u0001'+p;let n=S.folders.get(k);
+  if(!n)S.folders.set(k,n={key:k,lib:a.lib,path:p,parts:ps,name:a.parts[i-1],depth:i,top:topOf(ps),parent:i>1?a.lib+'\u0001'+a.parts.slice(0,i-1).join(' / '):null,direct:0,total:0,live:0,kids:new Set(),ch:[],assets:[]});
+  n.total++;if(a.live)n.live++;if(i<a.parts.length)n.kids.add(a.parts[i]);if(i===a.parts.length){n.direct++;n.assets.push(a)}}
+ for(const n of S.folders.values())if(n.parent)S.folders.get(n.parent).ch.push(n);
+ // duplicates & translation pairs (whole load, independent of the view)
+ S.assets.forEach(a=>{a.dupSlug=a.dupT=a.dupD=a.inT2=a.draftCopy=a.twin=false});S.dups=[];
+ for(const items of multi(grp(S.assets,a=>a.lib+'\u0001'+a.slug.toLowerCase()))){S.dups.push({tier:'Same slug',items});items.forEach(a=>a.dupSlug=true)}
+ for(const items of multi(grp(S.assets,a=>a.lib+'\u0001'+a.slug.toLowerCase().replace(/\/+$/,''))))if(items.some(a=>a.ix)&&items.some(a=>!a.ix))items.forEach(a=>a.twin=true);
+ for(const a of S.assets){a.phT=isPH(a.sT);a.phD=isPH(a.sD)}
+ const L=S.assets.filter(a=>a.live),tk=a=>uT(a)?a.lib+'\u0001'+a.lang+'\u0001'+norm(a.sT):null,dk=a=>uD(a)?a.lib+'\u0001'+a.lang+'\u0001'+norm(a.sD):null;
+ multi(grp(L,tk)).forEach(g=>g.forEach(a=>a.dupT=true));multi(grp(L,dk)).forEach(g=>g.forEach(a=>a.dupD=true));
+ for(const items of multi(grp(L,a=>tk(a)&&dk(a)?tk(a)+'\u0002'+norm(a.sD):null)))items.forEach(a=>a.inT2=true);
+ for(const items of multi(grp(L,tk)))S.dups.push({tier:'Same SEO title',items,desc:descOf(items)});
+ const lt=grp(L,tk),dc=grp(S.assets.filter(a=>!a.live&&tk(a)&&lt.has(tk(a))),tk);
+ for(const [k,ds] of dc){ds.forEach(a=>a.draftCopy=true);S.dups.push({tier:'Draft copy of a live page',items:lt.get(k).concat(ds)})}
+ const def=th.lang,bm=grp(S.assets,a=>a.lib+'\u0001'+a.base.toLowerCase());
+ for(const a of S.assets){const g=bm.get(a.lib+'\u0001'+a.base.toLowerCase());a.src=null;a.orphan=false;a.untr=false;a.trs=[];
+  if(a.lang!==def){a.src=g.find(b=>b.lang===def&&b!==a)||null;a.orphan=!a.src;a.untr=!!(a.src&&uT(a)&&uT(a.src)&&norm(a.sT)===norm(a.src.sT))}else a.trs=g.filter(b=>b.lang!==def);
+  a.langMis=!!(a.tl&&SWS[a.lang]&&a.tl!==a.lang)}
+ // page flags
+ for(const a of S.assets){const f=[],lT=a.sT.length,lD=a.sD.length;
+  a.age=a.upd?Math.max(0,Math.round((asOf-a.upd)/864e5)):null;a.ph=a.phT||a.phD;
+  a.longT=lT>th.tMax;a.shortT=lT>0&&lT<th.tMin;a.longD=lD>th.dMax;a.shortD=lD>0&&lD<th.dMin;a.trunc=/(\.\.\.|…)\s*$/.test(a.sD);
+  a.glue=GLUE.test(a.sT)||GLUE.test(a.sD);a.markup=MARK.test(a.rawT)||MARK.test(a.rawD);a.spc=[a.rawT,a.rawD].some(s=>s!==s.trim()||/ {2,}/.test(s.trim()));
+  a.defImg=!!a.tI&&S.imgRe.test(a.tI);a.cImg=!!a.tI&&!a.defImg;a.cOg=!!a.oI&&!S.imgRe.test(a.oI);
+  a.abandon=!a.live&&!a.pub&&a.age!=null&&a.age>th.stuck;a.badFolder=a.parts.some(isNP);a.stale=!!a.upd&&a.upd<cut;
+  a.meta=MCORE.filter(m=>m[1](a)).length/MCORE.length;
+  if(!uT(a))f.push('noT');if(!uD(a))f.push('noD');if(!uT(a)&&!uD(a))f.push('noBoth');if(a.ph)f.push('ph');
+  ['longT','shortT','longD','shortD','trunc','glue','markup','spc'].forEach(k=>{if(a[k])f.push(k)});
+  if(a.dupSlug)f.push('dupSlug');if(a.dupT)f.push('dupT');if(a.dupD)f.push('dupD');
+  if(!a.tI)f.push('noImg');if(a.defImg)f.push('defImg');if(!a.oI)f.push('noOg');
+  if(!a.live&&!a.pub)f.push('neverPub');if(a.abandon)f.push('abandon');if(a.pend)f.push('pend');if(a.noindex)f.push('noindex');if(!a.hide)f.push('hideUnset');
+  if(a.badFolder)f.push('badFolder');if(a.langMis)f.push('langMis');if(a.untr)f.push('untr');if(a.orphan)f.push('orphan');if(a.stale)f.push('stale');if(a.etype==='System / service')f.push('sys');a.flags=f}
+ // sections
+ const sib=new Map();
+ for(const n of S.folders.values()){const k=(n.parent||'ROOT'+n.lib)+'|'+nk(n.name);(sib.get(k)||sib.set(k,[]).get(k)).push(n)}
+ for(const n of S.folders.values())n.nearDup=null;
+ for(const arr of sib.values())if(arr.length>1)arr.forEach(n=>n.nearDup=arr.filter(x=>x!==n).map(x=>x.name));
+ for(const n of S.folders.values()){
+  if(n.direct){n.compl=sum(n.assets,a=>a.meta)/n.direct;n.np=n.assets.filter(a=>!a.live&&!a.pub).length;n.npShare=n.np/n.direct;n.last=n.assets.reduce((m,a)=>a.upd&&(!m||a.upd>m)?a.upd:m,null)}else{n.compl=null;n.np=0;n.npShare=0;n.last=null}
+  const I=[];
+  if(n.depth>th.deep)I.push('deep');if(isNP(n.name))I.push('naming');if(n.name!=='(root)'&&/[^a-z0-9\-]/.test(n.name))I.push('chr');
+  if(n.nearDup)I.push('nearDup');if(n.direct&&n.direct<=th.tiny&&!n.kids.size&&n.name!=='(root)')I.push('tiny');if(!n.direct&&n.kids.size===1)I.push('passThrough');
+  if(n.direct>th.big)I.push('oversized');if(n.last&&n.last<cut)I.push('stale');if(n.direct&&n.compl<.5)I.push('lowMeta');if(n.npShare>.5)I.push('drafts');
+  n.issues=I;const h=s=>I.includes(s);
+  n.health=Math.round(clamp(100-(n.direct?35*(1-n.compl):0)-25*n.npShare-(h('stale')?10:0)-(h('naming')||h('chr')?10:0)-(h('tiny')?8:0)-(h('passThrough')?5:0)-(h('deep')?7:0)-(h('nearDup')?5:0)-(h('oversized')?5:0),0,100));
+  n.action=[...new Set(I.map(i=>ISS[i][1]))].join('; ')}
+ computeGov()}
+/* governance metrics: URL rules, indexing risk, ROT, SEO readiness */
+function computeGov(){
+ S.assets.forEach(a=>a.dupe=false);for(const g of S.dups)for(const a of g.items)a.dupe=true;
+ for(const a of S.assets){a.ok=a.live;
+  a.nm=Object.keys(NMR).filter(k=>NMR[k][1](a));
+  a.rk=Object.keys(RK).filter(k=>RK[k][2](a));a.rl=a.rk.some(k=>RK[k][1]==='h')?3:a.rk.some(k=>RK[k][1]==='m')?2:a.rk.length?1:0;
+  a.fs=sum(FC,c=>c[2](a));a.fsw=FC.filter(c=>c[2](a)<c[1]).map(c=>c[0]);
+  a.rot={R:a.dupSlug||a.inT2||a.draftCopy,O:a.badFolder||a.abandon||(a.leafSmell&&!a.live),T:!uT(a)&&!uD(a)&&!a.tD}}
+ S.byId=new Map(S.assets.map(a=>[a.id,a]))}
+
+/* scope: site chips + section filter + status filter */
+const inScope=a=>{const s=S.scope;if(!s)return true;if(a.lib!==s.lib)return false;for(let i=0;i<s.parts.length;i++)if(a.parts[i]!==s.parts[i])return false;return true};
+const inScopeF=n=>{const s=S.scope;if(!s)return true;if(n.lib!==s.lib)return false;const p=s.parts.join(' / ');return !p||n.path===p||n.path.startsWith(p+' / ')};
+const LIVEK='__live';
+const inView=a=>S.active.has(a.lib)&&inScope(a)&&(!S.stat||(S.stat===LIVEK?a.live:(a.status||'(none)')===S.stat));
+const cur=()=>VA;
+// section counts follow the status filter; health score and issue flags stay site-wide
+function curFolders(){if(VF)return VF;const tot=new Map(),lv=new Map();
+ for(const a of VA)for(let i=1;i<=a.parts.length;i++){const k=a.lib+'\u0001'+a.parts.slice(0,i).join(' / ');tot.set(k,(tot.get(k)||0)+1);if(a.live)lv.set(k,(lv.get(k)||0)+1)}
+ VF=[...S.folders.values()].filter(n=>S.active.has(n.lib)&&inScopeF(n)&&tot.has(n.key)).map(n=>{const fa=n.assets.filter(inView),np=fa.filter(a=>!a.live&&!a.pub).length;
+  return{...n,assets:fa,direct:fa.length,total:tot.get(n.key),live:lv.get(n.key)||0,compl:fa.length?sum(fa,a=>a.meta)/fa.length:null,np,npShare:fa.length?np/fa.length:0}});return VF}
+function groupFolders(A){const m=new Map();for(const a of A){const k=a.lib+'\u0001'+a.path;let o=m.get(k);if(!o)m.set(k,o={lib:a.lib,path:a.path,as:[]});o.as.push(a)}return[...m.values()]}
+const nameFolders=()=>curFolders().filter(n=>n.name!=='(root)');
+const activeLibs=()=>S.libs.map(l=>l.name).filter(n=>S.active.has(n)&&(!S.scope||S.scope.lib===n));
+const descOf=items=>{const nd=new Set(items.map(a=>uD(a)?norm(a.sD):'\u0000'+a.id)).size;return nd===1?'All the same':nd<items.length?'Some the same':'All different'};
+const SAMED=g=>g.tier==='Same SEO title'&&g.desc==='All the same';
+function refreshDupes(){
+ for(const g of S.dups)for(const a of g.items){const i=a.flags.indexOf('dupe');if(i>-1)a.flags.splice(i,1)}
+ S.viewDups=S.dups.map(g=>{const items=g.items.filter(inView);return{...g,items,...(g.tier==='Same SEO title'?{desc:descOf(items)}:{})}}).filter(g=>g.items.length>1);
+ for(const g of S.viewDups)for(const a of g.items)if(!a.flags.includes('dupe'))a.flags.push('dupe')}
+function drill(lib,parts){S.scope={lib,parts};S.exp.folder='';S.exp.lib='';render()}
+function scopeUI(){
+ if(!S.assets.length)return'';
+ const act=S.libs.map(l=>l.name).filter(n=>S.active.has(n)),sc=S.scope;
+ const mk=(lvl,opts,sel,ph)=>`<select data-scope="${lvl}"><option value="">${ph}</option>${opts.map(o=>`<option value="${esc(o[0])}" ${o[0]===sel?'selected':''}>${esc(o[1])}</option>`).join('')}</select>`;
+ let h='<span class="mut" style="margin:0"><b>Section</b> ›</span>'+mk(0,act.map(l=>[l,l]),sc&&sc.lib,'All sites');
+ if(sc){let kids=[...S.folders.values()].filter(n=>n.lib===sc.lib&&n.depth===1);
+  for(let i=0;i<=sc.parts.length;i++){if(!kids.length)break;const sel=sc.parts[i];
+   h+=mk(i+1,kids.slice().sort((a,b)=>b.total-a.total).map(n=>[n.name,n.name+' ('+fmtN(n.total)+')']),sel,i===0?'All sections':'All subsections');
+   const ch=kids.find(n=>n.name===sel);kids=ch?ch.ch:[]}
+  h+='<button class="btn s" data-scope-clear>✕ Clear section filter</button>'}
+ return h}
+function statusUI(){if(!S.assets.length)return'';const m=new Map();let lv=0;
+ for(const a of S.assets)if(S.active.has(a.lib)&&inScope(a)){const k=a.status||'(none)';m.set(k,(m.get(k)||0)+1);if(a.live)lv++}
+ if(S.stat&&S.stat!==LIVEK&&!m.has(S.stat))m.set(S.stat,0);
+ return `<label class="mut" style="margin:0;display:flex;flex-direction:row;align-items:center;gap:6px"><b>Status</b><select data-stat><option value="">All statuses</option><option value="${LIVEK}" ${S.stat===LIVEK?'selected':''}>Live pages only (${fmtN(lv)})</option>${[...m.entries()].sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<option value="${esc(k)}" ${k===S.stat?'selected':''}>${esc(k)} (${fmtN(n)})</option>`).join('')}</select></label>`}
+const statLbl=()=>S.stat===LIVEK?'live pages only':S.stat;
+function go(o){Object.assign(S.exp,{q:'',lib:'',flag:'',status:'',lang:'',folder:'',direct:'',miss:''},o.exp||{});if(o.fa)Object.assign(S.fa,o.fa);if(o.scope)S.scope=o.scope;if(o.mview)S.mm.view=o.mview;if(o.mq)S.mm.q=o.mq;S.tab=o.tab;render()}
+
+/* chrome */
+function chrome(){const lock=!S.assets.length;
+ $('#nav').innerHTML=TABS.map(([k,l])=>k==='#'?`<div class="navg">${l}</div>`:`<button data-tab="${k}" class="${S.tab===k?'on':''}" ${lock&&k!=='load'?'disabled title="Load data and click Analyse to unlock this screen"':''}>${l}</button>`).join('')+(lock?'<p class="navhint">The reports unlock after you load your CSV exports and click <b>Analyse</b>.</p>':'');
+ $('#chips').innerHTML=S.libs.map(l=>`<span class="chip ${S.active.has(l.name)?'on':''}" data-lib="${esc(l.name)}">${esc(l.name)}</span>`).join('');
+ $('#stat').innerHTML=statusUI();$('#scope').innerHTML=scopeUI();
+ $('#asof').textContent=lock?'No data loaded yet':`${fmtN(VA.length)} pages in view${S.stat?' · '+statLbl():''}${S.excl.length?' · '+fmtN(S.excl.length)+' non-page entries left out':''} · as-of ${fmtD(S.asOf)}`}
+function render(){closeDrawer();DRILLS=Object.create(null);CH.forEach(c=>c.dispose());CH=[];if(!S.assets.length&&S.tab!=='load')S.tab='load';VA=S.assets.filter(inView);VF=null;refreshDupes();chrome();
+ try{PAGES[S.tab]()}catch(e){console.error(e);$('#view').innerHTML=`<div class="card"><h3>Something went wrong on this screen</h3><p class="mut">${esc(e.message)}</p></div>`}
+ const d=TD[S.tab];if(d)$('#view').insertAdjacentHTML('afterbegin',`<div class="ph"><h1>${d[0]}</h1><p>${d[1]}</p></div>`);window.scrollTo(0,0)}
+
+/* drill-down drawer */
+const MISS_CORE=MCORE.map(m=>m[0]);
+function missList(a){const fs=MISS_CORE.slice();if(DR&&DR.field&&!fs.includes(DR.field)&&MFD[DR.field])fs.push(DR.field);return fs.filter(n=>!MFD[n](a))}
+const DR_COLS={
+ missing:()=>[AC.u,AC.lib,AC.p,{k:'m',l:'Missing',v:a=>missList(a).join(', '),f:a=>missList(a).map(m=>`<span class="b ${m.startsWith('SEO')?'o':'m'}">${esc(m)}</span>`).join('')||'<span class="b i">none of these</span>'},AC.st,AC.sT,AC.sD,AC.tT,AC.tD,AC.tI,AC.ed,AC.mo,AC.id],
+ general:()=>cl('u','lib','p','lg','st','seo','mo','ed','fl','id'),
+ life:()=>cl('u','lib','p','st','mo','pu','hd','ed','seo','id'),
+ folders:()=>[{k:'lib',l:'Site',v:n=>n.lib},{k:'p',l:'Section',v:n=>n.path},{k:'d',l:'Pages here',v:n=>n.direct,num:1,f:n=>fmtN(n.direct)},{k:'t',l:'Incl. subsections',v:n=>n.total,num:1,f:n=>fmtN(n.total)},
+  {k:'lv',l:'Live',v:n=>n.live,num:1,f:n=>fmtN(n.live)},{k:'m',l:'Metadata %',v:n=>n.compl==null?-1:m1(100*n.compl),num:1,f:n=>n.compl==null?'–':(100*n.compl).toFixed(1)+'%'},
+  {k:'h',l:'Health',v:n=>n.health,num:1,f:n=>hb(n.health)},{k:'i',l:'Issues',v:n=>n.issues.map(i=>ISS[i][0]).join('; '),f:issBadges}],
+ groups:()=>[{k:'tier',l:'Match',v:g=>g.tier},{k:'n',l:'Pages',v:g=>g.items.length,num:1},{k:'dd',l:'Descriptions',v:g=>g.desc||''},{k:'stt',l:'Statuses',v:g=>[...new Set(g.items.map(a=>a.status))].join(', ')},
+  {k:'x',l:'Sections',v:g=>new Set(g.items.map(a=>a.top)).size,num:1},{k:'t',l:'SEO title',v:g=>g.items[0].sT||'(empty)',f:g=>txc(g.items[0].sT)},{k:'loc',l:'URLs',v:g=>g.items.slice(0,5).map(a=>a.slug).join(' | '),f:g=>g.items.slice(0,4).map(a=>`<span class="slug">${esc(a.slug)}</span>`).join('<br>')+(g.items.length>4?`<br><span class="mut">+${g.items.length-4} more</span>`:'')}]};
+function openDrawer(cfg){
+ DR={field:'',sub:'',ex:null,cols:'missing',unit:'pages',sortK:'u',sortDir:1,...cfg};
+ DR.total=cfg.total!==undefined?cfg.total:(DR.unit==='pages'?cur().length:0);
+ DR.file=(DR.title||'list').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,70)+'.csv';
+ delete TB.dr_tb;
+ $('#dr_t').textContent=DR.title;$('#dr_q').value='';$('#dr_ex').style.display=DR.ex?'':'none';$('#dr_back').hidden=!DR.prev;
+ const el=$('#drawer'),was=!el.hidden;el.hidden=false;document.body.classList.add('dr-open');
+ drawDrawer();if(!was)setTimeout(()=>CH.forEach(c=>c.resize()),30)}
+function closeDrawer(){const el=$('#drawer');if(!el||el.hidden)return;el.hidden=true;document.body.classList.remove('dr-open');DR=null;setTimeout(()=>CH.forEach(c=>c.resize()),30)}
+function drawDrawer(){if(!DR)return;const q=$('#dr_q').value.toLowerCase().trim(),hay=DR.hay||(a=>a.hay),rows=q?DR.rows.filter(r=>hay(r).includes(q)):DR.rows,u=DR.unit;
+ $('#dr_s').textContent=`${fmtN(rows.length)}${q?' of '+fmtN(DR.rows.length):''} ${u}${DR.total?' · '+P(rows.length,DR.total)+' of '+u+' in view':''}${DR.sub?' · '+DR.sub:''}`;
+ const cols=Array.isArray(DR.cols)?DR.cols:DR_COLS[DR.cols]();
+ regTable('dr_tb',cols,rows,{k:DR.sortK,dir:DR.sortDir,limit:100,file:DR.file,click:DR.click||(a=>go({tab:'explorer',exp:{q:a.id}}))})}
+const listA=(title,sub,rows,o={})=>openDrawer({title,sub,rows,cols:'general',...o});
+const listF=(title,sub,rows,o={})=>openDrawer({title,sub,rows,cols:'folders',unit:'sections',sortK:'d',sortDir:-1,hay:n=>(n.lib+' '+n.path).toLowerCase(),click:n=>go({tab:'explorer',scope:{lib:n.lib,parts:n.parts}}),...o});
+const reg=(name,fn)=>{MISSFN[name]=fn;return name};
+const lst=(t,s,A,p,o={})=>listA(t,s,A.filter(p),{ex:{exp:{miss:reg(t,p)}},...o});
+// governance lists take ready-made rows; "Open in Page explorer" filters the explorer to exactly these pages
+const gl=(title,sub,rows,o={})=>{const s=new Set(rows);openDrawer({title,sub,rows,cols:cl('u','lib','p','st','seo','ed','mo'),ex:{exp:{miss:reg(title,a=>s.has(a))}},...o})};
+const glF=(title,sub,rows)=>openDrawer({title,sub,rows,cols:FCOLS,unit:'sections',sortK:'n',sortDir:-1,hay:x=>(x.n.lib+' '+x.n.path).toLowerCase(),click:x=>gl('Pages in '+x.n.path,x.n.lib,cur().filter(a=>a.lib===x.n.lib&&(a.path===x.n.path||a.path.startsWith(x.n.path+' / '))),{cols:cl('u','lib','p','nm','st','sT','ed'),prev:DR})});
+
+/* PAGE: load */
+PAGES.load=()=>{const T=S.th;
+ $('#view').innerHTML=`${S.assets.length?'':'<p class="tip"><b>Start here:</b> the report screens are greyed out until you load your CSV exports and click <b>Analyse</b>.</p>'}
+ <div class="card"><h2>1 · Load the page exports</h2><div id="drop" class="drop">Drop all CSV exports here, or <label class="btn s">Browse<input id="fi" type="file" accept=".csv" multiple hidden></label><p class="mut" style="margin-top:10px">One CSV = one site (or CMS space). Expected columns: ${Object.values(COLN).join(', ')}. Processed locally in your browser; nothing is uploaded.</p></div></div>
+ <div class="card"><h2>2 · Name each site</h2><p class="mut">The name and base URL are guessed from the file name; please check them. The base URL only turns slugs into clickable links.</p><div id="flist"></div></div>
+ <div class="card"><h2>3 · Audit thresholds</h2><div class="thr">
+ <label>Stale after (years, also used by ROT)<input id="th_stale" type="number" value="${T.stale}"></label><label>Deep nesting above (levels)<input id="th_deep" type="number" value="${T.deep}"></label>
+ <label>Tiny section ≤ (pages)<input id="th_tiny" type="number" value="${T.tiny}"></label><label>Oversized section > (pages directly in it)<input id="th_big" type="number" value="${T.big}"></label>
+ <label>URL longer than (characters)<input id="th_slug" type="number" value="${T.slugMax}"></label><label>Draft abandoned after (days without update)<input id="th_stuck" type="number" value="${T.stuck}"></label>
+ <label>As-of date (blank = latest date in data)<input id="th_asof" type="date" value="${esc(T.asof)}"></label></div></div>
+ <div class="card"><h2>4 · SEO rules</h2><p class="mut">Character counts approximate Google's pixel limits (titles ≈ 600 px, descriptions ≈ 920 px on desktop).</p><div class="thr">
+ <label>SEO title shorter than (characters)<input id="th_tmin" type="number" value="${T.tMin}"></label><label>SEO title longer than (characters)<input id="th_tmax" type="number" value="${T.tMax}"></label>
+ <label>Description shorter than (characters)<input id="th_dmin" type="number" value="${T.dMin}"></label><label>Description longer than (characters)<input id="th_dmax" type="number" value="${T.dMax}"></label>
+ <label>Language of pages without a language prefix<input id="th_lang" value="${esc(T.lang)}" placeholder="en"></label>
+ <label>Default / placeholder image (regular expression)<input id="th_img" value="${esc(T.img)}"></label></div></div>
+ <div class="card"><h2>5 · Governance rules (optional)</h2><p class="mut">Used by the Governance reports. Leave blank to use the defaults.</p><div class="thr">
+ <label>URL pattern (regular expression)<input id="th_pat" value="${esc(T.pat)}" placeholder="e.g. ^[a-z0-9\\-/]+$"></label>
+ <label>SEO title pattern (regular expression)<input id="th_tpat" value="${esc(T.tpat)}" placeholder="e.g. ^Roche \\| "></label>
+ <label>Live statuses (comma separated)<input id="th_live" value="${esc(T.live)}" placeholder="default: Published, Published with Changes"></label>
+ <label>System / service accounts (regular expression)<input id="th_sys" value="${esc(T.sys)}"></label></div>
+ <label class="fl">Non-production section words (comma separated). A section counts as non-production when its name is, starts or ends with one of these.<textarea id="th_np" rows="2">${esc(T.np)}</textarea></label>
+ <div class="thr" style="margin-top:12px"><label>Shared-component sections, not pages (comma separated)<input id="th_comp" value="${esc(T.comp)}" placeholder="e.g. global-components"></label>
+ <label style="flex-direction:row;align-items:center;gap:8px;color:#000;font-size:13px"><input id="th_fold" type="checkbox" ${T.folders?'checked':''} style="height:auto">Leave out entries that look like CMS folders (child pages below them, never published, no SEO or teaser text)</label></div></div>
+ <div class="bar"><button id="go" class="btn pri l">Analyse</button><span class="mut" style="margin:0">Click Analyse again after changing a threshold or rule.</span></div>`;drawFiles()};
+function drawFiles(){const el=$('#flist');if(!el)return;const g=$('#go');if(g)g.disabled=!S.files.length;
+ el.innerHTML=S.files.length?S.files.map((f,i)=>{const fl=f.res.meta.fields||[],ks=new Set(fl.map(hk)),miss=Object.keys(COLS).filter(k=>!COLS[k].some(x=>ks.has(x))).map(k=>COLN[k]);
+  return `<div class="bar"><input data-lab="${i}" value="${esc(f.label)}" style="width:200px" title="Site name"><input data-base="${i}" value="${esc(f.base)}" placeholder="Base URL, e.g. https://www.example.com/" style="width:280px" title="Base URL"><span class="mut" style="margin:0">${esc(f.name)} · ${fmtN(f.res.data.length)} rows</span><button class="btn s" data-rm="${i}">✕ Remove</button></div>${miss.length?`<p class="warn">Columns not found in this file: ${esc(miss.join(', '))}. Reports that need them will show empty values.</p>`:''}`}).join(''):'<p class="mut">No files loaded yet.</p>'}
+function analyse(){const v=id=>$('#'+id)?$('#'+id).value:'',re=(s,n)=>{try{return s?new RegExp(s,'i'):null}catch(e){alert(`The ${n} is not a valid regular expression and was ignored.`);return null}};
+ S.th={stale:+v('th_stale')||3,deep:+v('th_deep')||4,tiny:+v('th_tiny')||2,big:+v('th_big')||500,slugMax:+v('th_slug')||75,stuck:+v('th_stuck')||180,tMin:+v('th_tmin')||30,tMax:+v('th_tmax')||60,dMin:+v('th_dmin')||70,dMax:+v('th_dmax')||160,
+  lang:(v('th_lang').trim()||'en').toLowerCase(),img:v('th_img').trim(),pat:v('th_pat').trim(),tpat:v('th_tpat').trim(),live:v('th_live'),sys:v('th_sys').trim(),np:v('th_np'),comp:v('th_comp'),folders:$('#th_fold')?$('#th_fold').checked:true,asof:v('th_asof')};
+ try{S.re=S.th.pat?new RegExp(S.th.pat):null}catch(e){S.re=null;alert('The URL pattern is not a valid regular expression and was ignored.')}
+ try{S.tre=S.th.tpat?new RegExp(S.th.tpat):null}catch(e){S.tre=null;alert('The SEO title pattern is not a valid regular expression and was ignored.')}
+ S.imgRe=re(S.th.img,'default image pattern')||/(?!)/;S.sysRe=re(S.th.sys,'system account pattern')||/(?!)/;
+ S.npW=new Set(splitList(S.th.np,/[,;\n]/).map(x=>x.toLowerCase()));
+ const lv=splitList(S.th.live,/[,;\n]/).map(x=>x.toLowerCase());S.live=new Set(lv.length?lv:['published','published with changes']);
+ build();let mx=0;S.assets.forEach(a=>{[a.upd,a.pub].forEach(d=>{if(d&&+d>mx)mx=+d})});
+ S.asOf=S.th.asof?new Date(S.th.asof+'T00:00:00Z'):new Date(mx||Date.now());
+ computeAll();S.active=new Set(S.libs.map(l=>l.name));S.scope=null;S.stat='';S.exp.miss='';S.insF={sev:'',area:''};S.tab='overview';render()}
+
+/* PAGE: overview */
+PAGES.overview=()=>{const A=cur(),F=curFolders().filter(n=>n.direct),L=A.filter(a=>a.live),clean=A.filter(a=>a.flags.some(f=>CLEAN.includes(f))),inc=A.filter(a=>a.meta<1).length,hl=F.length?sum(F,n=>n.health*n.direct)/sum(F,n=>n.direct):0,lg=cnt(A,a=>a.lang);
+ $('#view').innerHTML=`${exclNote()}<div class="kpis">
+ ${kp('Pages',fmtN(A.length),activeLibs().length+' site'+(activeLibs().length===1?'':'s')+' · '+lg.size+' language'+(lg.size===1?'':'s'),'','ov1',()=>listA('All pages in view','Matching the site chips, section and status filters',A,{ex:{}}),A.length)}
+ ${kp('Live pages',fmtN(L.length),P(L.length,A.length)+' of pages','','ov2',()=>lst('Live pages','Status counts as live: '+[...S.live].join(', '),A,a=>a.live),L.length)}
+ ${kp('Sections with pages',fmtN(F.length),'','','ov3',()=>listF('Sections with pages','Click a row to open the section.',F),F.length)}
+ ${kp('Section health',Math.round(hl)+'/100','page-weighted score',kc(hl),'ov4',()=>listF('Section health — weakest first','Lowest score first.',F,{sortK:'h',sortDir:1}),F.length)}
+ ${kp('Clean-up candidates',fmtN(clean.length),P(clean.length,A.length)+' of pages',pct(clean.length,A.length)>15?'r':'o','ov5',()=>lst('Clean-up candidates','Abandoned draft, non-production section, placeholder text or duplicate slug',A,a=>a.flags.some(f=>CLEAN.includes(f))),clean.length)}
+ ${kp('Metadata completeness',avgC(A).toFixed(1)+'%','avg of SEO title · description · teaser title · teaser text · custom image','','ov6',()=>lst('Incomplete core metadata','Missing at least one core field',A,a=>a.meta<1,{cols:'missing'}),inc)}</div>
+ <div class="g2">${card('Pages by top-level section and status','o1',420,'Language prefixes are folded into the section, so de/investors counts under investors.')}${card('URL languages','o2',420)}</div>
+ <div class="g2">${card('Last update per year (by status)','o3',320,'Each page counts once, in the year of its most recent change.')}${card('Live pages by year of last publish','o4',320,'Year of the most recent publish, by URL language.')}</div>
+ <div class="g2">${card('15 biggest sections','o5',430,'Pages directly in the section.')}${card('Section size distribution','o6',430,'How many sections hold 1, 2–5, 6–20… pages directly.')}</div>`;
+ stackBy('o1',A,a=>a.top,a=>a.status||'(none)',{h:true,maxCats:15,lw:160,colors:{Published:C.sg,Draft:C.g3,'Published with Changes':C.sy},on:(c,s,x)=>{const rows=A.filter(a=>x.catFn(a)===c&&(s==='Other'?x.rest.has(a.status||'(none)'):(a.status||'(none)')===s));gl(s+' — '+c,'',rows)}});
+ pie('o2',topN(lg,8).map(([k,n])=>[LN(k),n]),{onClick:n=>lst('URL language: '+n,'',A,a=>LN(a.lang)===n)});
+ stackBy('o3',A,a=>yr(a.upd),a=>a.status||'(none)',{colors:{Published:C.sg,Draft:C.g3,'Published with Changes':C.sy}});
+ stackBy('o4',L,a=>yr(a.pub),a=>LN(a.lang));
+ simpleBar('o5',F.slice().sort((a,b)=>b.direct-a.direct).slice(0,15).map(n=>[n.lib+' · '+n.path,n.direct]),{h:true,lw:260});
+ const bk=n=>n.direct===1?'1':n.direct<=5?'2–5':n.direct<=20?'6–20':n.direct<=100?'21–100':n.direct<=500?'101–500':'500+',ord=['1','2–5','6–20','21–100','101–500','500+'];
+ stackBy('o6',F,bk,n=>n.lib,{catSort:(a,b)=>ord.indexOf(a)-ord.indexOf(b)})};
+
+/* PAGE: insights */
+const insArea=k=>k==='cross'?'Across reports':(TD[k]?TD[k][0]:k);
+const htmlTxt=h=>{const d=document.createElement('div');d.innerHTML=h;return d.textContent};
+const SEVN={high:'High',med:'Medium',info:'Info'};
+// '1 sections hold …' → '1 section holds …': singular noun and verb when a title starts with a count of one
+const PLN={pages:'page',sections:'section',urls:'URL',URLs:'URL',titles:'title',groups:'group',drafts:'draft',entries:'entry',slugs:'slug',translations:'translation',descriptions:'description',texts:'text',actions:'action',editors:'editor'},PLV={sit:'sits',live:'lives',have:'has',are:'is',hold:'holds',contain:'contains',share:'shares',repeat:'repeats',lack:'lacks',use:'uses',score:'scores',look:'looks',were:'was',exist:'exists',break:'breaks',end:'ends',carry:'carries'};
+const sing=t=>{if(!/^1 /.test(t))return t;const w=t.split(' ');let n=-1;for(let i=1;i<w.length&&!w[i-1].includes(',');i++){if(n<0&&PLN[w[i]]){w[i]=PLN[w[i]];n=i}else if(n>=0&&PLV[w[i]]){w[i]=PLV[w[i]];break}}return w.join(' ')};
+function makeInsights(){const A=cur(),N=A.length,F=curFolders(),FD=F.filter(n=>n.direct),RF=nameFolders(),out=[],fl=f=>A.filter(a=>a.flags.includes(f)),libs=activeLibs(),L=A.filter(a=>a.live),IX=A.filter(a=>a.ixb),def=S.th.lang;
+ if(!N)return out;
+ // sev: high | med | info · g: where "Investigate" goes · o.area: the report a finding comes from · o.rows: the pages behind it (for "List pages")
+ const add=(sev,t,x,g,o={})=>out.push({sev,t:sing(t),x,g,area:o.area||g.tab,rows:o.rows&&o.rows.length?o.rows:null,cols:o.cols});
+ const toEx=(key,rows)=>{const st=new Set(rows);return{tab:'explorer',exp:{miss:reg('Nugget: '+key,a=>st.has(a))}}};
+ const eg=(arr,n=3)=>esc([...new Set(arr)].slice(0,n).join(' | '));
+ const RC=cl('u','lib','p','st','rk','hd','seo'),SC=cl('u','lib','p','st','lT','lD','seo'),IC=cl('u','lib','p','st','tI','oI','tT'),LC=cl('u','lib','lg','tl','st','seo'),NC=cl('u','lib','p','nm','st','sT');
+
+ /* Publishing lifecycle */
+ {const D=A.filter(a=>!a.live&&a.upd),bm=grp(D,a=>fmtD(a.upd)+'\u0001'+a.ed),b=[...bm.entries()].sort((x,y)=>y[1].length-x[1].length)[0];
+  if(b&&b[1].length>=50){const [d,ed]=b[0].split('\u0001'),ys=b[1].map(a=>(a.slug.match(/(?:19|20)\d{2}/)||[])[0]).filter(Boolean).sort();
+   add('info',`${fmtN(b[1].length)} drafts were last saved in a single batch on ${d}`,`Account: ${esc(ed)}. ${P(b[1].length,D.length)} of all drafts in view${ys.length>=b[1].length/2?`; the years in their URLs run from ${ys[0]} to ${ys[ys.length-1]}`:''}. This looks like a bulk import that was never published; decide on it as one block.`,{tab:'life'},{rows:b[1],cols:'life'})}}
+ {const pe=fl('pend');if(pe.length){const od=pe.filter(a=>a.pub).map(a=>Math.round((S.asOf-a.pub)/864e5));add('med',`${fmtN(pe.length)} live pages have unpublished changes`,`Editors saved changes that visitors do not see yet${od.length?`; median ${fmtN(med(od))} days since the last publish`:''}. Publish or discard them.`,{tab:'life'},{rows:pe,cols:'life'})}}
+ {const st=L.filter(a=>a.stale);if(st.length)add(pct(st.length,L.length)>=30?'med':'info',`${fmtN(st.length)} live pages (${P(st.length,L.length)}) have not been updated in more than ${S.th.stale} years`,`Oldest last update: ${fmtD(st.reduce((m,a)=>!m||a.upd<m?a.upd:m,null))}. News archives age by design, so focus on evergreen sections. Migrations reset dates, so treat ages as indicative.`,{tab:'life'},{rows:st,cols:'life'})}
+ {const u=A.filter(a=>!a.hide);if(u.length)add('info',`${fmtN(u.length)} pages have no value in "Hide from search engines"`,`${fmtN(u.filter(a=>a.live).length)} of them are live. The site then falls back to its own default; set the option so the intent is recorded.`,{tab:'rights'},{area:'life',rows:u,cols:RC})}
+
+ /* Section audit */
+ {const np=fl('badFolder'),lv=np.filter(a=>a.live),nf=[...new Set(np.map(a=>a.lib+' · '+a.path))];
+  if(np.length)add(lv.length?'high':'med',`${fmtN(np.length)} pages sit in non-production sections (test, unpublished, lorem-ipsum…)`,`${fmtN(lv.length)} of them are live. ${fmtN(nf.length)} sections, e.g. ${eg(nf)}.`,{tab:'folders',fa:{issue:'naming',q:''}},{rows:np,cols:'life'})}
+ {const g=new Map();FD.forEach(n=>{let o=g.get(n.top);if(!o)g.set(n.top,o={k:n.top,w:0,n:0});o.w+=n.health*n.direct;o.n+=n.direct});const w=[...g.values()].filter(o=>o.n>=20&&!isNP(o.k)).map(o=>({...o,h:o.w/o.n})).sort((a,b)=>a.h-b.h)[0];
+  if(w)add('med',`Lowest-health top-level section: ${esc(w.k)} (${Math.round(w.h)}/100)`,`Page-weighted across ${fmtN(w.n)} pages. Start the clean-up here.`,{tab:'folders',fa:{q:w.k==='(root)'?'':w.k,issue:''}})}
+ if(libs.length>1){const wl=libs.map(l=>{const fd=FD.filter(n=>n.lib===l);return[l,fd.length?sum(fd,n=>n.health*n.direct)/sum(fd,n=>n.direct):100]}).sort((a,b)=>a[1]-b[1])[0];if(wl)add('med',`Lowest-health site: ${esc(wl[0])} (${Math.round(wl[1])}/100)`,'Start the clean-up here.',{tab:'folders'})}
+ {const tiny=FD.filter(n=>n.issues.includes('tiny')).length;if(tiny)add('info',`${fmtN(tiny)} sections hold ${S.th.tiny} or fewer pages`,`${P(tiny,FD.length)} of sections with pages. Candidates for merging, unless they are intentional landing folders.`,{tab:'folders',fa:{issue:'tiny',q:''}})}
+ {const nd=F.filter(n=>n.issues.includes('nearDup'));if(nd.length)add('med',`${fmtN(nd.length)} sections have a near-identical sibling`,`e.g. ${eg(nd.map(n=>n.path+' ≈ '+n.nearDup[0]))}. Likely accidental duplicates.`,{tab:'folders',fa:{issue:'nearDup',q:''}})}
+ {const ov=RF.filter(n=>n.issues.includes('oversized'));if(ov.length){const b=ov.reduce((m,n)=>n.direct>m.direct?n:m);
+  add('info',`${fmtN(ov.length)} sections hold more than ${fmtN(S.th.big)} pages directly`,`Largest: ${esc(b.lib+' · '+short(b.path,90))} (${fmtN(b.direct)} pages). Flat archives are fine for visitors but slow to manage in the CMS; consider year subfolders.`,{tab:'folders',fa:{issue:'oversized',q:''}})}}
+ {const pt=RF.filter(n=>n.issues.includes('passThrough')).length;if(pt)add('info',`${fmtN(pt)} sections contain only a single subsection and no pages`,'Flattening them shortens URLs (with redirects).',{tab:'folders',fa:{issue:'passThrough',q:''}})}
+
+ /* SEO metadata */
+ {const fields=MCORE.map(([n,f])=>[n,rate(A,f),f]).sort((a,b)=>a[1]-b[1]);
+  add(fields[0][1]<50?'high':'med',`Weakest page field: ${fields[0][0]} (${fields[0][1].toFixed(1)}% filled)`,fields.map(f=>f[0]+' '+f[1].toFixed(1)+'%').join(' · ')+'. Placeholder text counts as missing; "custom image" excludes images matching your default-image pattern.',{tab:'meta',mview:'overview'},{rows:A.filter(a=>!fields[0][2](a)),cols:'missing'})}
+ {const x=IX.filter(a=>!uT(a)||!uD(a));if(x.length)add('high',`${fmtN(x.length)} indexable live pages lack a usable SEO title or description`,`${P(x.length,IX.length)} of indexable pages. Search engines then build the snippet themselves, often from navigation or boilerplate text.`,{tab:'meta',mview:'overview'},{rows:x,cols:'missing'})}
+ {const lt=L.filter(a=>a.longT);if(lt.length)add(pct(lt.length,L.length)>=30?'med':'info',`${P(lt.length,L.length)} of live SEO titles are longer than ${S.th.tMax} characters`,`${fmtN(lt.length)} pages; median live title length ${fmtN(med(L.filter(uT).map(a=>a.sT.length)))} characters. Google usually cuts titles at about 600 pixels, so the end of these titles is not shown.`,{tab:'meta',mview:'quality',mq:'longT'},{rows:lt,cols:SC})}
+ {const tr=L.filter(a=>a.trunc),ld=L.filter(a=>a.longD);if(tr.length)add('med',`${fmtN(tr.length)} live descriptions end in "…"`,`${P(tr.length,L.length)} of live pages. They look cut from the body text at a fixed length, so the snippet stops mid-sentence. Separately, ${fmtN(ld.length)} live descriptions are longer than ${S.th.dMax} characters.`,{tab:'meta',mview:'quality',mq:'trunc'},{rows:tr,cols:SC})}
+ {const g=A.filter(a=>a.glue);if(g.length)add('med',`${fmtN(g.length)} SEO texts have sentences joined without a space`,`e.g. "${esc(glueEx(g[0].sD||g[0].sT))}". Usually footnote markers or paragraph breaks lost when the text was copied from the page body.`,{tab:'meta',mview:'quality',mq:'glue'},{rows:g,cols:SC})}
+ {const mk=A.filter(a=>a.markup);if(mk.length)add('info',`${fmtN(mk.length)} SEO titles or descriptions contain HTML, entities or line breaks`,`They can show up literally in search results, e.g. ${eg(mk.map(a=>a.slug))}.`,{tab:'meta',mview:'quality',mq:'markup'},{rows:mk,cols:SC})}
+ {const ph=fl('ph'),pl=ph.filter(a=>a.live);if(ph.length)add(pl.length?'high':'med',`${fmtN(ph.length)} pages use placeholder SEO text`,`${fmtN(pl.length)} are live. Examples: ${eg([...new Set(ph.map(a=>'"'+short(a.phT?a.sT:a.sD,40)+'"'))])}.`,{tab:'meta',mview:'quality',mq:'ph'},{rows:ph,cols:SC})}
+ if(libs.length>1){const lc=libs.map(l=>{const as=A.filter(a=>a.lib===l);return{l,as,v:avgC(as)}}).filter(x=>x.as.length).sort((a,b)=>a.v-b.v),av=avgC(A),hi=lc[lc.length-1];
+  if(lc.length>1&&lc[0].v<av-10)add('med',`${esc(lc[0].l)} has the least complete page metadata (${lc[0].v.toFixed(1)}% vs ${av.toFixed(1)}% across the view)`,`Most complete: ${esc(hi.l)} (${hi.v.toFixed(1)}%).`,{tab:'meta',mview:'overview'},{rows:lc[0].as.filter(a=>a.meta<1),cols:'missing'})}
+
+ /* Duplicates & clutter */
+ const dg=S.viewDups;
+ {const tg=dg.filter(g=>g.tier==='Same SEO title'),xs=tg.filter(g=>new Set(g.items.map(a=>a.top)).size>1);
+  if(tg.length){const pages=[...new Set(tg.flatMap(g=>g.items))],pr=xs.length?topN(cnt(xs,g=>[...new Set(g.items.map(a=>a.top))].sort().join(' + ')),1)[0]:null;
+   add('med',`${fmtN(tg.length)} SEO titles are each used by more than one live page`,`${fmtN(pages.length)} pages; in ${fmtN(tg.filter(SAMED).length)} of these groups the description is identical too. ${fmtN(xs.length)} groups span more than one top-level section${pr?`, most often ${esc(pr[0])} (${fmtN(pr[1])})`:''}. Pages with the same title compete for the same searches; pick a canonical page or differentiate the titles.`,{tab:'dups'},{rows:pages,cols:SC})}}
+ {const sg=dg.filter(g=>g.tier==='Same slug');if(sg.length)add('high',`${fmtN(sg.length)} slugs are used by more than one CMS entry`,`${fmtN(sum(sg,g=>g.items.length))} entries, e.g. ${eg(sg.map(g=>g.items[0].slug))}. Only one of them can be served at that URL.`,{tab:'dups'},{rows:sg.flatMap(g=>g.items),cols:'life'})}
+ {const dc=A.filter(a=>a.draftCopy);if(dc.length)add('med',`${fmtN(dc.length)} drafts repeat the SEO title of a live page`,'Likely leftover copies. Delete them, or give them their own title before publishing.',{tab:'dups'},{rows:dc,cols:'life'})}
+ {const t=[...grp(L.filter(uD),a=>a.lib+'|'+a.lang+'|'+norm(a.sD)).values()].sort((a,b)=>b.length-a.length)[0];if(t&&t.length>=5)add('info',`One description is repeated on ${fmtN(t.length)} live pages`,`"${esc(short(t[0].sD,110))}"`,{tab:'dups'},{rows:t,cols:SC})}
+
+ /* Teasers & social */
+ {const di=L.filter(a=>a.defImg),ni=L.filter(a=>!a.tI);if(di.length||ni.length)add(pct(di.length+ni.length,L.length)>=30?'med':'info',`${P(di.length+ni.length,L.length)} of live pages have no custom teaser image`,`${fmtN(di.length)} use a default or placeholder image and ${fmtN(ni.length)} have none. Cards and listings that show these pages all look alike.`,{tab:'social'},{rows:di.concat(ni),cols:IC})}
+ {const og=L.filter(a=>a.oI);if(L.length)add(pct(og.length,L.length)<50?'med':'info',`${P(og.length,L.length)} of live pages have an OG image`,`${fmtN(L.length-og.length)} live pages leave it empty. The export does not show whether the site falls back to the teaser image; check one page's rendered og:image tag to confirm.`,{tab:'social'},{rows:L.filter(a=>!a.oI),cols:IC})}
+ {const t=topN(cnt(A.filter(a=>a.tI),a=>a.tI),1)[0];if(t&&t[1]>=20)add('info',`One teaser image is used on ${fmtN(t[1])} pages`,`${esc(t[0].split('/').pop())} (${P(t[1],N)} of pages in view). ${S.imgRe.test(t[0])?'It matches your default-image pattern.':'It does not match your default-image pattern; check whether it is a fallback and add it to the pattern.'}`,{tab:'social'},{rows:A.filter(a=>a.tI===t[0]),cols:IC})}
+
+ /* People & activity */
+ {const sy=fl('sys');if(sy.length/N>.3)add('info',`${P(sy.length,N)} of pages were last updated by a system or service account`,`${fmtN(sy.length)} pages, mostly ${esc(topN(cnt(sy,a=>a.ed),1)[0][0])}. "Last update" then reflects an import or automation run, not an editorial review.`,{tab:'people'})}
+ {const cr=topN(cnt(A.filter(a=>a.etype==='Person'),a=>a.ed),1)[0];if(cr)add('info',`${esc(cr[0])} last updated ${fmtN(cr[1])} pages, the most of any named editor`,`${P(cr[1],N)} of the pages in view. A good person to involve when planning clean-up.`,{tab:'people'})}
+ {const y=365*864e5,r=A.filter(a=>a.upd&&(S.asOf-a.upd)<y).length,p=A.filter(a=>a.upd&&(S.asOf-a.upd)>=y&&(S.asOf-a.upd)<2*y).length;
+  if(p>=20&&Math.abs(r-p)/p>=.25)add('info',`Pages last changed in the past 12 months ${r>p?'rose':'fell'} ${Math.round(100*Math.abs(r-p)/p)}% on the year before`,`${fmtN(r)} pages last changed in the 12 months to ${fmtD(S.asOf)}, against ${fmtN(p)} whose last change falls in the 12 months before. Only the latest change of each page is in the export, so this is a rough activity signal.`,{tab:'people'})}
+ {const gp=A.filter(a=>a.etype==='Person'&&(!uT(a)||!uD(a))),m=topN(cnt(gp,a=>a.ed),1)[0];
+  if(m&&gp.length>=20&&m[1]/gp.length>=.15)add('info',`${esc(m[0])} last edited ${fmtN(m[1])} of the ${fmtN(gp.length)} editor-touched pages missing an SEO title or description`,`${P(m[1],gp.length)} of that gap. A good first person to involve.`,{tab:'meta',mview:'overview'},{area:'people',rows:gp.filter(a=>a.ed===m[0]),cols:'missing'})}
+
+ /* URL & naming */
+ {const nm=A.filter(a=>a.nm.length);if(nm.length){const rk=Object.keys(NMR).map(k=>[k,A.filter(a=>a.nm.includes(k)).length]).sort((a,b)=>b[1]-a[1])[0];
+  add('info',`${P(nm.length,N)} of URLs break at least one URL rule`,`${fmtN(nm.length)} pages. Most common: ${esc(NMR[rk[0]][0])} (${fmtN(rk[1])}). Changing a live URL needs a redirect. ${S.re?'':'Add your own URL pattern on the Load screen to check your convention too.'}`,{tab:'naming'},{rows:nm,cols:NC})}}
+ {const uc=A.filter(a=>a.nm.includes('up')||a.nm.includes('und'));if(uc.length)add('med',`${fmtN(uc.length)} URLs contain uppercase letters or underscores`,`e.g. ${eg(uc.map(a=>a.slug))}. Mixed case can create two addresses for one page on case-sensitive servers.`,{tab:'naming'},{rows:uc,cols:NC})}
+ {const tw=A.filter(a=>a.twin);if(tw.length)add('med',`${fmtN(tw.length)} entries exist both with and without a trailing slash`,`e.g. ${eg([...new Set(tw.map(a=>a.slug.replace(/\/$/,'')))])}. On most sites both forms resolve to the same address, so one of them is never served.`,{tab:'naming'},{rows:tw,cols:NC})}
+ {const fc=RF.filter(n=>NMF.chr[1](n));if(fc.length)add('info',`${fmtN(fc.length)} section names contain uppercase letters, underscores or special characters`,`e.g. ${eg(fc.map(n=>n.lib+' · '+n.path))}.`,{tab:'naming'})}
+
+ /* Language & translations */
+ {const mm=fl('langMis');if(mm.length){const p=topN(cnt(mm,a=>LN(a.lang)+' URL, '+LN(a.tl)+' text'),1)[0];add('med',`${fmtN(mm.length)} pages look like their text is in a different language than their URL`,`Most common: ${esc(p[0])} (${fmtN(p[1])}). Detected from frequent words in the SEO title and descriptions, so verify before acting.`,{tab:'lang'},{rows:mm,cols:LC})}}
+ {const ut=fl('untr');if(ut.length)add('med',`${fmtN(ut.length)} translated pages repeat the SEO title of their ${LN(def)} source`,`Likely untranslated metadata (names and product titles can be legitimately identical), e.g. ${eg(ut.map(a=>a.slug))}.`,{tab:'lang'},{rows:ut,cols:cl('u','src','lg','st','sT')})}
+ {const or=fl('orphan');if(or.length)add('info',`${fmtN(or.length)} translations have no matching ${LN(def)} page`,`e.g. ${eg(or.map(a=>a.slug))}. A language switcher cannot link them to a source page.`,{tab:'lang'},{rows:or,cols:LC})}
+
+ /* Indexing risk */
+ {const h=L.filter(a=>a.noindex);if(h.length)add('info',`${fmtN(h.length)} live pages are hidden from search engines`,`e.g. ${eg(h.map(a=>a.slug))}. Confirm this is intentional.`,{tab:'rights'},{rows:h,cols:RC})}
+ {const hi=A.filter(a=>a.rl===3);if(hi.length){const k=topN(cnt(hi.flatMap(a=>a.rk.filter(r=>RK[r][1]==='h')),x=>x),1)[0];add('high',`${fmtN(hi.length)} pages carry a high indexing risk`,`Most common: ${esc(RK[k[0]][0])} (${fmtN(k[1])}).`,{tab:'rights'},{rows:hi,cols:RC})}}
+
+ /* ROT analysis */
+ {const rot=A.filter(aR);if(rot.length){const n=k=>A.filter(a=>a.rot[k]).length;
+  add(pct(rot.length,N)>40?'high':'med',`${P(rot.length,N)} of pages are redundant, obsolete or trivial`,`${fmtN(rot.length)} pages: redundant ${fmtN(n('R'))} · obsolete ${fmtN(n('O'))} · trivial ${fmtN(n('T'))}. Redundant counts every copy in a duplicate group, so it is an upper bound: one copy of each group usually stays.`,{tab:'rot'},{rows:rot,cols:cl('u','lib','p','st','rot','seo','mo')});
+  const fg=groupFolders(A).map(o=>({...o,r:o.as.filter(aR)})),arc=fg.filter(o=>o.as.length>=3&&o.r.length/o.as.length>=.8).sort((a,b)=>b.r.length-a.r.length);
+  if(arc.length)add('med',`${fmtN(arc.length)} sections are recommended for archiving`,`80% or more of the pages in each are ROT, e.g. ${eg(arc.map(o=>o.lib+' · '+o.path),2)}.`,{tab:'rot'},{rows:arc.flatMap(o=>o.r)});
+  const wf=fg.filter(o=>o.r.length).sort((a,b)=>b.r.length-a.r.length),t10=sum(wf.slice(0,10),o=>o.r.length);
+  if(wf.length>=20&&t10/rot.length>=.3)add('info',`10 sections hold ${P(t10,rot.length)} of all ROT pages`,`Out of ${fmtN(wf.length)} sections with ROT. Cleaning these first removes the most clutter for the least effort, starting with ${eg(wf.map(o=>o.lib+' · '+o.path),2)}.`,{tab:'rot'},{rows:wf.slice(0,10).flatMap(o=>o.r)})}}
+
+ /* SEO readiness */
+ {const lo=L.filter(a=>a.fs<50);if(lo.length){const cp=FC.map(c=>[c[0],pct(sum(L,a=>c[2](a)),L.length*c[1])]).sort((a,b)=>a[1]-b[1])[0];
+  add('med',`${fmtN(lo.length)} live pages score below 50 for SEO readiness`,`${P(lo.length,L.length)} of live pages. Average live score ${(sum(L,a=>a.fs)/L.length).toFixed(1)}/100. Weakest component: ${esc(cp[0])} (${cp[1].toFixed(0)}% of points earned).`,{tab:'find'},{rows:lo,cols:cl('u','lib','p','fs','fw','seo')})}}
+ if(libs.length>1){const fv=libs.map(l=>{const as=A.filter(a=>a.lib===l);return{l,v:as.length?sum(as,a=>a.fs)/as.length:null}}).filter(x=>x.v!=null).sort((a,b)=>a.v-b.v),hi=fv[fv.length-1];
+  if(fv.length>1&&hi.v-fv[0].v>=15)add('info',`${esc(fv[0].l)} is the least search-ready site (average ${fv[0].v.toFixed(1)}/100)`,`Most ready: ${esc(hi.l)} (${hi.v.toFixed(1)}).`,{tab:'find'})}
+
+ /* Draft ageing */
+ {const ab=fl('abandon');if(ab.length){const tf=topN(cnt(ab,a=>a.lib+' · '+a.path),1)[0];
+  add(pct(ab.length,N)>=10?'high':'med',`${fmtN(ab.length)} drafts were never published and not touched for more than ${fmtN(S.th.stuck)} days`,`${P(ab.length,N)} of the pages in view; median ${fmtN(med(ab.map(a=>a.age)))} days since the last change. Section with most: ${esc(tf[0])} (${fmtN(tf[1])}). Publish, schedule or delete them.`,{tab:'aging'},{rows:ab,cols:cl('u','lib','p','st','age','mo','ed','seo')})}}
+
+ /* Audit pack & backlog */
+ {const sc=scoreOf(A);if(sc){const o=Math.round(sc.o),wi=sc.p.indexOf(Math.min(...sc.p)),ls=libs.map(l=>[l,scoreOf(A.filter(a=>a.lib===l))]).filter(x=>x[1]).sort((a,b)=>a[1].o-b[1].o);
+  add(o<50?'high':o<80?'med':'info',`Overall governance score: ${o}/100`,`Weakest dimension: ${PN[wi]} (${Math.round(sc.p[wi])}).${ls.length>1?` Lowest-scoring site: ${esc(ls[0][0])} (${Math.round(ls[0][1].o)}).`:''}`,{tab:'audit'})}}
+ {const p1=backlog(A).filter(x=>x.p==='P1');if(p1.length){const b=p1.slice().sort((a,b)=>b.n-a.n)[0];
+  add('high',`${fmtN(p1.length)} priority-1 actions in the backlog`,`They cover ${fmtN(sum(p1,x=>x.n))} page-level findings. Largest: ${esc(b.txt)} (${fmtN(b.n)} pages; ${esc(b.owner)} last updated the most of them).`,{tab:'audit'})}}
+
+ /* Across reports */
+ {const sr=[];for(const g of dg){const keep=g.items.filter(a=>a.live&&!a.badFolder&&!a.ph);if(keep.length)for(const a of g.items)if(!keep.includes(a)&&(!a.live||a.badFolder))sr.push(a)}
+  if(sr.length)add('med',`${fmtN(sr.length)} duplicate entries look safe to remove`,`Each has a live, normally filed copy in its group, while this entry is a draft or sits in a non-production section. Verify before deleting, especially entries that share only a title.`,toEx('duplicate entries that look safe to remove',sr),{area:'cross',rows:sr,cols:'life'})}
+ {const pb=a=>(a.rl===3)+!!aR(a)+(a.fs<50)+(a.nm.length>0)+(a.abandon?1:0),mp=A.filter(a=>pb(a)>=3);
+  if(mp.length)add('med',`${fmtN(mp.length)} pages have problems in three or more reports`,`Counting high indexing risk, ROT, SEO readiness below 50, URL issues and abandoned drafts. ${P(mp.length,N)} of the pages in view; fixing or retiring these clears several reports at once.`,toEx('problems in three or more reports',mp),{area:'cross',rows:mp,cols:cl('u','lib','p','st','rk','rot','fs','seo')})}
+ {const rc=L.filter(a=>a.pub&&(S.asOf-a.pub)<90*864e5);if(rc.length>=20){const iss=[['an auto-truncated description',a=>a.trunc],['a title over '+S.th.tMax+' characters',a=>a.longT],['no custom teaser image',a=>!a.cImg]].map(([n,f])=>[n,rc.filter(f)]).filter(x=>pct(x[1].length,rc.length)>=30);
+  if(iss.length)add('med',`New pages repeat the old problems`,`Of the ${fmtN(rc.length)} pages published in the last 90 days, ${iss.map(x=>`${P(x[1].length,rc.length)} have ${x[0]}`).join(', ')}. Fixing the template or import step stops the backlog from growing.`,toEx('pages published in the last 90 days',rc),{area:'cross',rows:rc,cols:SC})}}
+ {const ua=IX.filter(a=>!uT(a)&&!uD(a));if(ua.length)add('med',`${fmtN(ua.length)} indexable live pages have neither an SEO title nor a description`,`Live and open to search engines, but with nothing to show in a result: ${P(ua.length,IX.length)} of indexable pages.`,toEx('indexable pages with no SEO title or description',ua),{area:'cross',rows:ua,cols:'missing'})}
+ return out}
+PAGES.insights=()=>{const all=makeInsights(),f=S.insF,ao=k=>k==='cross'?-1:TABS.findIndex(t=>t[0]===k),so={high:0,med:1,info:2};
+ all.sort((a,b)=>so[a.sev]-so[b.sev]||ao(a.area)-ao(b.area));
+ if(f.area&&!all.some(x=>x.area===f.area))f.area='';
+ const I=all.filter(x=>(!f.sev||x.sev===f.sev)&&(!f.area||x.area===f.area)),n=s=>all.filter(x=>x.sev===s).length,am=cnt(all,x=>x.area);
+ const cardH=(x,i)=>`<div class="card ins"><p class="mut" style="margin:0">${esc(insArea(x.area))}</p><h3><span class="dot ${x.sev}"></span>${x.t}</h3><p>${x.x}</p><div class="bar" style="margin:6px 0 0"><button class="btn s" data-ins="${i}">Investigate →</button>${x.rows?`<button class="btn s" data-insl="${i}">List ${fmtN(x.rows.length)} pages</button>`:''}</div></div>`;
+ const sec=sv=>{const xs=I.map((x,i)=>[x,i]).filter(([x])=>x.sev===sv);return xs.length?`<h2 class="insh"><span class="dot ${sv}"></span>${SEVN[sv]} · ${xs.length}</h2><div class="g2">${xs.map(([x,i])=>cardH(x,i)).join('')}</div>`:''};
+ $('#view').innerHTML=all.length?`<div class="bar noprint">${[['','All',all.length],['high','High',n('high')],['med','Medium',n('med')],['info','Info',n('info')]].map(([k,l,c])=>`<span class="chip ${f.sev===k?'on':''}" data-insf-sev="${k}">${l} · ${c}</span>`).join('')}
+ <select data-insf-area><option value="">All reports</option>${[...am.entries()].sort((a,b)=>ao(a[0])-ao(b[0])).map(([k,c])=>`<option value="${k}" ${f.area===k?'selected':''}>${esc(insArea(k))} (${c})</option>`).join('')}</select>
+ <button class="btn s" id="ins_dl">Download findings (CSV)</button></div>
+ <p class="mut">${fmtN(all.length)} findings for the ${fmtN(cur().length)} pages in view, drawn from every report. They recalculate when you change the site, section or status filter. Tip: set Status to "Live pages only" to see what visitors and search engines get.</p>
+ ${['high','med','info'].map(sec).join('')||'<p class="mut">No findings match this filter.</p>'}`:'<div class="card"><p class="mut" style="margin:0">No findings for the current view.</p></div>';
+ S._ins=I};
+
+/* PAGE: structure */
+function buildTree(A,withLib,off){const root={c:new Map(),own:0};
+ for(const a of A){let n=root;const ps0=a.parts.slice(off),ps=ps0.length?ps0:['(pages directly here)'];
+  for(const p of(withLib?[a.lib,...ps]:ps)){let c=n.c.get(p);if(!c)n.c.set(p,c={c:new Map(),own:0});n=c}n.own++}
+ const conv=m=>[...m.entries()].map(([name,n])=>{const ch=conv(n.c);if(!ch.length)return{name,value:n.own};if(n.own)ch.push({name:'(pages directly here)',value:n.own});return{name,children:ch}});return conv(root.c)}
+PAGES.structure=()=>{const s=S.st,sc=S.scope,lib=sc?sc.lib:s.lib,off=sc?sc.parts.length:0;
+ $('#view').innerHTML=`<div class="card"><div class="bar"><select id="st_lib" ${sc?'disabled title="Controlled by the section filter in the header"':''}><option value="">All sites</option>${activeLibs().map(l=>`<option ${lib===l?'selected':''}>${esc(l)}</option>`).join('')}</select>
+ <select id="st_metric"><option value="count" ${s.metric==='count'?'selected':''}>All pages</option><option value="live" ${s.metric==='live'?'selected':''}>Live pages only</option><option value="draft" ${s.metric==='draft'?'selected':''}>Drafts only</option></select>
+ <select id="st_view"><option value="treemap" ${s.view==='treemap'?'selected':''}>Treemap (click to drill)</option><option value="sunburst" ${s.view==='sunburst'?'selected':''}>Sunburst</option></select>
+ ${sc?`<span class="mut" style="margin:0">Starting at: ${esc([sc.lib,...sc.parts].join(' › '))}</span>`:''}</div><div id="st_c" style="height:640px"></div></div>
+ <div class="card"><h3>Sections at this level</h3><p class="mut">Click a row to open that section in the Page explorer.</p><div id="st_tb"></div></div>`;
+ const A=cur().filter(a=>(!lib||a.lib===lib)&&(s.metric==='live'?a.live:s.metric==='draft'?!a.live:true)),tree=buildTree(A,!lib,off);
+ const tip={formatter:i=>`${esc(i.treePathInfo.map(p=>p.name).filter(Boolean).join(' / '))}<br><b>${fmtN(i.value)} pages</b>`};
+ ec('st_c',s.view==='treemap'?{tooltip:tip,series:[{type:'treemap',data:tree,color:DARK,leafDepth:2,roam:false,breadcrumb:{show:true,itemStyle:{color:C.navy,textStyle:{color:'#fff'}}},label:{show:true,formatter:'{b}',color:'#fff'},upperLabel:{show:true,height:22,color:'#fff'},itemStyle:{borderColor:'#fff',borderWidth:1,gapWidth:1},levels:[{itemStyle:{borderWidth:0,gapWidth:4}},{colorSaturation:[.6,.9],itemStyle:{gapWidth:2}},{colorSaturation:[.5,.8]}]}]}
+  :{tooltip:tip,series:[{type:'sunburst',data:tree,color:DARK,radius:['6%','96%'],label:{rotate:'radial',minAngle:6,color:'#fff',fontSize:10},itemStyle:{borderColor:'#fff',borderWidth:1},emphasis:{focus:'ancestor'},levels:[{},{r0:'6%',r:'28%'},{r0:'28%',r:'52%'},{r0:'52%',r:'72%'},{r0:'72%',r:'96%',label:{show:false}}]}]});
+ const g=new Map();for(const a of A){const own=a.parts.length<=off,top=own?'(pages directly here)':a.parts[off],pp=a.parts.slice(0,own?off:off+1),k=(lib?'':a.lib+' · ')+top;
+  let o=g.get(k);if(!o)g.set(k,o={name:k,lib:a.lib,parts:pp,n:0,lv:0,dr:0,depth:0});o.n++;a.live?o.lv++:o.dr++;o.depth=Math.max(o.depth,a.segs.length)}
+ regTable('st_tb',[{k:'name',l:'Section',v:r=>r.name},{k:'n',l:'Pages',v:r=>r.n,f:r=>fmtN(r.n),num:1},{k:'lv',l:'Live',v:r=>r.lv,num:1},{k:'dr',l:'Not live',v:r=>r.dr,num:1},{k:'depth',l:'Max URL depth',v:r=>r.depth,num:1}],[...g.values()],{k:'n',click:r=>go({tab:'explorer',scope:{lib:r.lib,parts:r.parts}})})};
+
+/* PAGE: section audit */
+function faRows(){const q=S.fa.q.toLowerCase(),i=S.fa.issue;return curFolders().filter(n=>(!i||n.issues.includes(i))&&(!q||(n.lib+' '+n.path).toLowerCase().includes(q)))}
+function drawFolders(){const rows=faRows();
+ regTable('fa_tb',[{k:'lib',l:'Site',v:n=>n.lib},{k:'path',l:'Section',v:n=>n.path},{k:'depth',l:'Depth',v:n=>n.depth,num:1},{k:'direct',l:'Pages here',v:n=>n.direct,num:1,f:n=>fmtN(n.direct)},{k:'total',l:'Incl. subsections',v:n=>n.total,num:1,f:n=>fmtN(n.total)},
+  {k:'live',l:'Live',v:n=>n.live,num:1,f:n=>fmtN(n.live)},{k:'np',l:'Never published',v:n=>n.np,num:1},{k:'compl',l:'Metadata %',v:n=>n.compl==null?-1:m1(100*n.compl),num:1,f:n=>n.compl==null?'–':(100*n.compl).toFixed(1)+'%'},
+  {k:'health',l:'Health',v:n=>n.health,num:1,f:n=>hb(n.health)},{k:'iss',l:'Issues',v:n=>n.issues.map(i=>ISS[i][0]).join('; '),f:issBadges},{k:'act',l:'Suggested action',v:n=>n.action}],rows,
+  {k:'health',dir:1,file:'section-cleanup-worklist.csv',click:n=>go({tab:'explorer',scope:{lib:n.lib,parts:n.parts}})});
+ const el=$('#fa_n');if(el)el.textContent=fmtN(rows.length)+' sections'}
+PAGES.folders=()=>{const F=curFolders(),FD=F.filter(n=>n.direct),ic=Object.keys(ISS).map(k=>[k,F.filter(n=>n.issues.includes(k)).length]);
+ $('#view').innerHTML=`<p class="tip">A section is a folder in the URL: the slug minus its last part. Pages whose slug ends in "/" are the section's own index page. "(root)" holds top-level pages such as /about.</p>${exclNote()}
+ <div class="g2">${card('Issues across sections','fa1',340,'Click a bar to filter the table')}${card('Health score distribution','fa2',340,'Red <50, yellow 50–79, green ≥80. Scores are calculated on the whole site, not the status filter.')}</div>
+ ${card('Section map — pages vs health','fa3',420,'Each bubble is a section. Bubble size = live pages, colour = health. Click a bubble to open the section.')}
+ <div class="card"><h3>Section worklist <span id="fa_n" class="mut"></span></h3><div class="bar"><input id="fa_q" placeholder="Search section path…" value="${esc(S.fa.q)}" style="width:260px"><select id="fa_i"><option value="">All issues</option>${Object.keys(ISS).map(k=>`<option value="${k}" ${S.fa.issue===k?'selected':''}>${ISS[k][0]}</option>`).join('')}</select></div>
+ <p class="mut">Click a row to open the section. Health = 100 − metadata gaps (max 35) − never-published-draft share (max 25) − stale 10 − naming 10 − tiny 8 − deep 7 − pass-through 5 − near-duplicate 5 − oversized 5.</p><div id="fa_tb"></div></div>`;
+ const c1=simpleBar('fa1',ic.map(([k,n])=>[ISS[k][0],n]),{h:true,lw:250});c1&&c1.on('click',p=>{const k=Object.keys(ISS).find(k=>ISS[k][0]===p.name);S.fa.issue=k;$('#fa_i').value=k;drawFolders()});
+ const bins=Array.from({length:10},(_,i)=>[i*10+'–'+(i*10+9),0,i<5?C.sr:i<8?C.sy:C.sg]);FD.forEach(n=>bins[Math.min(9,Math.floor(n.health/10))][1]++);simpleBar('fa2',bins);
+ const c3=ec('fa3',{tooltip:{formatter:p=>`${esc(p.data.n.lib)} · ${esc(p.data.n.path)}<br>${fmtN(p.value[0])} pages · health ${p.value[1]} · ${fmtN(p.value[2])} live`},grid:{left:10,right:30,top:20,bottom:30,containLabel:true},
+  xAxis:{type:'log',name:'Pages here',nameLocation:'middle',nameGap:26,...AX()},yAxis:{type:'value',min:0,max:100,name:'Health',...AX()},
+  series:[{type:'scatter',symbolSize:d=>clamp(Math.sqrt(d[2])*2.5,6,50),data:FD.map(n=>({value:[n.direct,n.health,n.live],n,itemStyle:{color:hcol(n.health),opacity:.75}}))}]});
+ c3&&c3.on('click',p=>{const n=p.data.n;go({tab:'explorer',scope:{lib:n.lib,parts:n.parts}})});drawFolders()};
+
+/* PAGE: SEO metadata */
+const TDN='SEO title AND description';
+const MF=[['SEO title',uT],['SEO description',uD],[TDN,a=>uT(a)&&uD(a)],['Teaser title',a=>!!a.tT],['Teaser description',a=>!!a.tD],['Custom teaser image',a=>a.cImg],['OG title',a=>!!a.oT],['OG description',a=>!!a.oD],['OG image',a=>!!a.oI],['Search setting',a=>!!a.hide]];
+const MFD=Object.fromEntries(MF);
+const MFP={'SEO title':'have a usable SEO title','SEO description':'have a usable SEO description',[TDN]:'have both a usable SEO title and description','Teaser title':'have a teaser title','Teaser description':'have a teaser description','Custom teaser image':'have a teaser image that is not a default or placeholder','OG title':'have an OG title','OG description':'have an OG description','OG image':'have an OG image','Search setting':'have "Hide from search engines" set to Yes or No'};
+const mkey=n=>'Missing: '+(n===TDN?'SEO title or description':n),mlab=n=>n===TDN?'SEO title or description missing':n+' missing';
+const either=a=>!uT(a)||!uD(a),both=a=>!uT(a)&&!uD(a);
+const kind=a=>both(a)?'Missing both':!uT(a)?'Missing title only':!uD(a)?'Missing description only':'Complete';
+const KINDS=[['Missing both',C.sr],['Missing title only',C.orange],['Missing description only',C.lorange],['Complete',C.sg]];
+const MISSFN={};MF.forEach(([n,f])=>MISSFN[mkey(n)]=a=>!f(a));KINDS.forEach(([k])=>MISSFN[k]=a=>kind(a)===k);
+MISSFN['Missing SEO title or description']=either;MISSFN['Incomplete core metadata']=a=>a.meta<1;
+function gapChart(id,groups,o={}){const ks=o.skipComplete?KINDS.slice(0,3):KINDS;
+ return stk(id,groups.map(g=>g[0]),ks.map(([k,col])=>({n:k,c:col,d:groups.map(g=>{const c=g[1].filter(a=>kind(a)===k).length;return o.pct?pct(c,g[1].length):c})})),{h:o.h,rot:o.rot,pct:o.pct,
+  on:(cat,sn)=>{const g=groups.find(x=>x[0]===cat);if(g){const rows=g[1].filter(a=>kind(a)===sn),s=new Set(rows),t=sn+' — '+cat;openDrawer({title:t,rows,ex:{exp:{miss:reg(t,a=>s.has(a))}}})}}})}
+const metaSwitch=v=>`<div class="subnav"><button class="btn ${v==='overview'?'pri':''}" data-mview="overview">Completeness</button><button class="btn ${v==='quality'?'pri':''}" data-mview="quality">Length &amp; text quality</button></div>`;
+function missKpis(A){const n=A.length;
+ return [['Missing both','no usable SEO title or description',both,'r'],['Missing SEO title','',a=>!uT(a),'o'],['Missing description','',a=>!uD(a),'o'],['Missing either','title, description or both',either,'o'],['Has title AND description','',a=>!either(a),'g']].map(([l,s,p,c])=>{const x=A.filter(p).length;
+  return kp(l,fmtN(x),P(x,n)+' of pages'+(s?' · '+s:''),x?c:'g','m_'+l,()=>lst(l,s||'Pages in this group',A,p,{cols:'missing'}),x)}).join('')}
+function reconRows(A){const mk=(name,as,top)=>({name,top,n:as.length,b:as.filter(both).length,t:as.filter(a=>!uT(a)&&uD(a)).length,d:as.filter(a=>!uD(a)&&uT(a)).length,c:as.filter(a=>!either(a)).length});
+ return[mk('All pages in view',A,null),...[...grp(A,a=>a.top)].sort((x,y)=>y[1].length-x[1].length).map(([t,as])=>mk(t,as,t))]}
+function checkCard(A,FD){const n=A.length,R=reconRows(A),tot=R[0],lr=R.slice(1),cT=A.filter(a=>!uT(a)).length,cD=A.filter(a=>!uD(a)).length,cE=A.filter(either).length;
+ const dupA=new Set(S.viewDups.flatMap(g=>g.items)).size,dupF=A.filter(a=>a.flags.includes('dupe')).length,fd=sum(FD,f=>f.direct),sc=sum([...cnt(A,a=>a.status||'(none)').values()],x=>x),lv=A.filter(a=>a.live).length,nl=A.filter(a=>!a.live).length;
+ const ck=[['The four groups add up to the pages in view',tot.b+tot.t+tot.d+tot.c===n,`${fmtN(tot.b)} + ${fmtN(tot.t)} + ${fmtN(tot.d)} + ${fmtN(tot.c)} = ${fmtN(n)}`],['Missing SEO title = Missing both + Missing title only',cT===tot.b+tot.t,`${fmtN(cT)} = ${fmtN(tot.b)} + ${fmtN(tot.t)}`],
+  ['Missing description = Missing both + Missing description only',cD===tot.b+tot.d,`${fmtN(cD)} = ${fmtN(tot.b)} + ${fmtN(tot.d)}`],['Missing either = everything except "Has both"',cE===n-tot.c,`${fmtN(cE)} = ${fmtN(n)} − ${fmtN(tot.c)}`],
+  ['Top-level section rows add up to the pages in view',sum(lr,r=>r.n)===n,`${fmtN(sum(lr,r=>r.n))} vs ${fmtN(n)}`],['Pages per section add up to the pages in view',fd===n,`${fmtN(fd)} vs ${fmtN(n)}`],
+  ['Status counts add up to the pages in view',sc===n,`${fmtN(sc)} vs ${fmtN(n)}`],['Live + not live = pages in view',lv+nl===n,`${fmtN(lv)} + ${fmtN(nl)} = ${fmtN(n)}`],
+  ['"Possible duplicate" flag = pages on the Duplicates page',dupF===dupA,`${fmtN(dupF)} vs ${fmtN(dupA)}`]],bad=ck.filter(c=>!c[1]).length;
+ return `<div class="card"><h3>Consistency check (automatic)</h3><p class="mut">${bad?`<b style="color:${C.sr}">${bad} of ${ck.length} checks failed</b>: note which row so it can be traced.`:`<b style="color:${C.sg}">All ${ck.length} checks passed</b> for the pages in view.`}</p><div class="tw"><table><tbody>${ck.map(c=>`<tr><td style="width:28px"><b style="color:${c[1]?C.sg:C.sr}">${c[1]?'✔':'✖'}</b></td><td>${esc(c[0])}</td><td style="color:${C.g2}">${esc(c[2])}</td></tr>`).join('')}</tbody></table></div></div>`}
+function lenBins(A,get,step,maxv,lo,hi){const bins=[{n:'empty',f:a=>get(a)===0,c:C.sr}];for(let s=1;s<=maxv;s+=step){const e=s+step-1,mid=(s+e)/2;bins.push({n:s+'–'+e,f:a=>{const v=get(a);return v>=s&&v<=e},c:mid<lo||mid>hi?C.sy:C.sg})}
+ bins.push({n:'>'+maxv,f:a=>get(a)>maxv,c:C.sy});return bins.map(b=>({...b,rows:A.filter(b.f)}))}
+PAGES.meta=()=>{const A=cur(),FD=curFolders().filter(n=>n.direct),T=S.th;
+ if(S.mm.view==='quality'){const qa=k=>A.filter(a=>a[k]),hy=A.filter(a=>a.glue||a.markup||a.spc),SC=cl('u','lib','p','st','lT','lD','q','seo');
+  $('#view').innerHTML=`${metaSwitch('quality')}<p class="tip">Lengths count characters, not pixels: titles ${T.tMin}–${T.tMax}, descriptions ${T.dMin}–${T.dMax} (change on the Load screen). "Auto-truncated" = the description ends in "..." or "…". Use the Status filter in the header to look at live pages only.</p>
+  <div class="kpis">${[['longT','Title too long','> '+T.tMax+' characters','o'],['shortT','Title too short','< '+T.tMin+' characters',''],['longD','Description too long','> '+T.dMax+' characters','o'],['shortD','Description too short','< '+T.dMin+' characters',''],['trunc','Auto-truncated','description ends in …','o'],['ph','Placeholder text','"test", "SEO description"…','r']].map(([k,l,s,c])=>{const r=qa(k);return kp(l,fmtN(r.length),P(r.length,A.length)+' of pages · '+s,r.length?c:'g','q_'+k,()=>gl(l,s,r,{cols:SC}),r.length)}).join('')}
+  ${kp('Text hygiene',fmtN(hy.length),'joined sentences, markup or stray spaces',hy.length?'o':'g','q_hy',()=>gl('Text hygiene issues','',hy,{cols:SC}),hy.length)}</div>
+  <div class="g2">${card('SEO title length (characters)','q1',320,'Green = within your limits. Click a bar to list the pages.')}${card('SEO description length (characters)','q2',320,'Green = within your limits. Click a bar to list the pages.')}</div>
+  ${card('Quality issues by top-level section','q3',420,'A page can have several issues. Click a segment to list the pages.')}
+  <div class="card"><h3>Pages with a quality issue</h3><div class="bar"><select id="mm_q">${Object.entries(QUAL).map(([k,l])=>`<option value="${k}" ${S.mm.q===k?'selected':''}>${l}</option>`).join('')}</select><span id="mm_n" class="mut" style="margin:0"></span></div><div id="mm_tb"></div></div>`;
+  const b1=lenBins(A,a=>a.sT.length,10,150,T.tMin,T.tMax),b2=lenBins(A,a=>a.sD.length,20,300,T.dMin,T.dMax);
+  simpleBar('q1',b1.map(b=>[b.n,b.rows.length,b.c]),{rot:40,onClick:(n,v,p)=>gl('SEO title length '+n,'',b1[p.dataIndex].rows,{cols:SC})});
+  simpleBar('q2',b2.map(b=>[b.n,b.rows.length,b.c]),{rot:40,onClick:(n,v,p)=>gl('Description length '+n,'',b2[p.dataIndex].rows,{cols:SC})});
+  const tops=topSecs(A),qk=['longT','longD','trunc','glue','markup','ph'],qc={longT:C.orange,longD:C.lorange,trunc:C.blue,glue:C.xdpurple,markup:C.purple,ph:C.sr};
+  stk('q3',tops,qk.map(k=>({n:QUAL[k],c:qc[k],d:tops.map(t=>A.filter(a=>a.top===t&&a[k]).length)})),{h:true,on:(t,s)=>{const k=qk.find(k=>QUAL[k]===s);gl(s+' — '+t,'',A.filter(a=>a.top===t&&a[k]),{cols:SC})}});
+  const draw=()=>{const k=S.mm.q,rows=A.filter(a=>a[k]);regTable('mm_tb',SC.concat([AC.ed,AC.id]),rows,{k:'u',dir:1,limit:200,file:'seo-quality-'+k+'.csv'});$('#mm_n').textContent=fmtN(rows.length)+' pages · '+P(rows.length,A.length)+' of pages in view'};
+  $('#mm_q').onchange=e=>{S.mm.q=e.target.value;delete TB.mm_tb;draw()};draw();return}
+ const libs=activeLibs(),R=reconRows(A),tx=[],tops=topSecs(A,15);
+ S.libs.filter(l=>libs.includes(l.name)).forEach(l=>{const as=A.filter(a=>a.lib===l.name);l.custom.forEach(f=>tx.push({lib:l.name,f,n:as.length,h:as.filter(a=>a.custom[f]).length}))});
+ const ys=libs.length>1?libs:tops,yf=libs.length>1?(a,y)=>a.lib===y:(a,y)=>a.top===y;
+ $('#view').innerHTML=`${metaSwitch('overview')}<p class="tip">Click any KPI card, bar or heatmap cell to list the pages behind it. Placeholder text ("test", "SEO description", "Roche | Page title"…) counts as missing. "Custom teaser image" leaves out images that match your default-image pattern.</p>
+ <div class="kpis">${missKpis(A)}${kp('Avg. completeness',avgC(A).toFixed(1)+'%','avg of the five core fields','','m_core',()=>lst('Incomplete core metadata','Missing SEO title, description, teaser title, teaser text or custom image',A,a=>a.meta<1,{cols:'missing'}),A.length)}</div>
+ ${card('SEO title &amp; description gaps by top-level section (% of pages)','mo1',420,'Red = neither · orange = no title only · light orange = no description only · green = both present. Click a segment.')}
+ <div class="card"><h3>How the numbers fit together</h3><p class="mut">Every page is in exactly one of four groups, so they add up to Pages. Missing SEO title = Missing both + Missing title only · Missing description = Missing both + Missing description only · "${TDN}" % in the heatmap = Has both ÷ Pages.</p><div id="rc_tb"></div></div>
+ ${card(`Completeness by ${libs.length>1?'site':'top-level section'} and field (%)`,'m1',Math.max(280,ys.length*30+120),`Each cell = % of that ${libs.length>1?'site':'section'}'s pages that have the field. Hover for counts; click to list pages missing it.`)}
+ ${card('Completeness by section (30 biggest)','m2',760,'Each cell = % of the pages directly in that section that have the field.')}
+ ${card('Average metadata completeness by editor (15 most active)','m3',460,'Average of the five core fields, by the account that last updated the page. The number in brackets is the page count. Click a bar to list the pages.')}
+ ${tx.length?`<div class="card"><h3>Extra columns: fill rate</h3><p class="mut">Columns in the export that the studio does not map to a known field. Click a row to list the pages where it is empty.</p><div id="tx_tb"></div></div>`:''}${checkCard(A,FD)}`;
+ gapChart('mo1',tops.map(t=>[t,A.filter(a=>a.top===t)]),{pct:true,h:true});
+ const ok=r=>r.b+r.t+r.d+r.c===r.n,cell=(x,n)=>`${fmtN(x)} <span class="mut" style="margin:0">(${P(x,n)})</span>`;
+ regTable('rc_tb',[{k:'name',l:'Top-level section',v:r=>r.name},{k:'n',l:'Pages',v:r=>r.n,num:1,f:r=>fmtN(r.n)},{k:'b',l:'Missing both',v:r=>r.b,num:1,f:r=>cell(r.b,r.n)},{k:'t',l:'Missing title only',v:r=>r.t,num:1,f:r=>cell(r.t,r.n)},{k:'d',l:'Missing description only',v:r=>r.d,num:1,f:r=>cell(r.d,r.n)},{k:'c',l:'Has both',v:r=>r.c,num:1,f:r=>cell(r.c,r.n)},{k:'ok',l:'Adds up?',v:r=>ok(r)?1:0,f:r=>`<b style="color:${ok(r)?C.sg:C.sr}">${ok(r)?'✔':'✖'}</b>`}],R,{k:'n',limit:50,file:'metadata-reconciliation.csv',
+  click:r=>{const rows=A.filter(a=>(r.top==null||a.top===r.top)&&either(a)),s=new Set(rows),t=r.name+' — SEO title or description missing';openDrawer({title:t,rows,ex:{exp:{miss:reg(t,a=>s.has(a))}}})}});
+ const d=[];ys.forEach((y,yi)=>{const a=A.filter(x=>yf(x,y));MF.forEach(([n,f],x)=>d.push([x,yi,rate(a,f),a.filter(f).length,a.length]))});
+ heat('m1',MF.map(m=>m[0]),ys,d,{rot:30,tip:(xi,yi,pc,have,tot)=>`<b>${esc(ys[yi])}</b> · ${esc(MF[xi][0])}<br><b>${pc.toFixed(1)}%</b> of ${esc(ys[yi])} pages ${esc(MFP[MF[xi][0]])}<br>${fmtN(have)} of ${fmtN(tot)} pages · ${fmtN(tot-have)} missing (${P(tot-have,tot)})`,
+  onClick:(xi,yi)=>{const n=MF[xi][0],f=MF[xi][1],y=ys[yi],rows=A.filter(a=>yf(a,y)&&!f(a)),s=new Set(rows),t=`${y} — ${mlab(n)}`;openDrawer({title:t,field:n,rows,ex:{exp:{miss:reg(t,a=>s.has(a))}}})}});
+ const FF=FD.slice().sort((a,b)=>b.direct-a.direct).slice(0,30),MFF=MF.slice(0,6),d2=[];FF.forEach((n,y)=>MFF.forEach(([_,f],x)=>d2.push([x,y,rate(n.assets,f),n.assets.filter(f).length,n.assets.length])));
+ heat('m2',MFF.map(m=>m[0]),FF.map(n=>n.lib+' · '+n.path),d2,{rot:20,tip:(xi,yi,pc,have,tot)=>`<b>${esc(FF[yi].lib)} · ${esc(FF[yi].path)}</b><br>${esc(MFF[xi][0])}: <b>${pc.toFixed(1)}%</b> of the pages directly in this section ${esc(MFP[MFF[xi][0]])}<br>${fmtN(have)} of ${fmtN(tot)} pages · ${fmtN(tot-have)} missing`,
+  onClick:(xi,yi)=>{const n=MFF[xi][0],f=MFF[xi][1],fo=FF[yi];openDrawer({title:`${fo.lib} · ${fo.path} — ${mlab(n)}`,field:n,rows:fo.assets.filter(a=>!f(a)),ex:{scope:{lib:fo.lib,parts:fo.parts},exp:{direct:'1',miss:mkey(n)}}})}});
+ const cm=new Map();A.forEach(a=>{const k=a.ed;let o=cm.get(k);if(!o)cm.set(k,o={k,n:0,m:0});o.n++;o.m+=a.meta});
+ const cr=[...cm.values()].sort((x,y)=>y.n-x.n).slice(0,15);
+ simpleBar('m3',cr.map(o=>[o.k+' ('+fmtN(o.n)+')',m1(100*o.m/o.n),hcol(100*o.m/o.n)]),{h:true,lw:260,max:100,onClick:(nm,v,p)=>{const o=cr[p.dataIndex];if(o)lst('Last updated by: '+o.k,'Pages last updated by this account',A,a=>a.ed===o.k,{cols:'missing'})}});
+ if(tx.length)regTable('tx_tb',[{k:'lib',l:'Site',v:r=>r.lib},{k:'f',l:'Column',v:r=>r.f},{k:'n',l:'Pages',v:r=>r.n,num:1},{k:'h',l:'Filled',v:r=>r.h,num:1},{k:'p',l:'Fill rate',v:r=>m1(pct(r.h,r.n)),num:1,f:r=>hb(Math.round(pct(r.h,r.n)))}],tx,{k:'p',dir:1,limit:80,file:'extra-column-fill-rate.csv',
+  click:r=>lst(`${r.lib} — ${r.f} empty`,'Pages where this column is empty',A,a=>a.lib===r.lib&&!a.custom[r.f])})};
+
+/* PAGE: publishing lifecycle */
+PAGES.life=()=>{const A=cur(),L=A.filter(a=>a.live),n=f=>A.filter(a=>a.flags.includes(f)).length,stc={Published:C.sg,Draft:C.g3,'Published with Changes':C.sy};
+ const Lk=(key,name,sub,pred,flag,sk,sd)=>{const rows=A.filter(pred);return K(key,()=>listA(name,sub,rows,{cols:'life',ex:flag?{exp:{flag}}:{exp:{miss:reg(name,pred)}},sortK:sk||'u',sortDir:sd||1}),rows.length)};
+ const hl=L.filter(a=>a.noindex).length,stl=L.filter(a=>a.stale).length;
+ $('#view').innerHTML=`<div class="kpis">
+ ${kpi('Live pages',fmtN(L.length),P(L.length,A.length)+' of pages · '+esc([...S.live].join(', ')),'g',Lk('lf1','Live pages','',a=>a.live,null,'mo',-1))}
+ ${kpi('Never published',fmtN(n('neverPub')),'drafts with no publish date','o',Lk('lf2','Never-published drafts','Oldest first',a=>a.flags.includes('neverPub'),'neverPub','mo',1))}
+ ${kpi('Abandoned drafts',fmtN(n('abandon')),'never published, no change for > '+S.th.stuck+' days','r',Lk('lf3','Abandoned drafts','Oldest first',a=>a.abandon,'abandon','mo',1))}
+ ${kpi('Unpublished changes',fmtN(n('pend')),'live, with newer edits waiting','o',Lk('lf4','Live pages with unpublished changes','',a=>a.pend,'pend','mo',-1))}
+ ${kpi('Live but hidden from search',fmtN(hl),'"Hide from search engines" = Yes','',Lk('lf5','Live pages hidden from search engines','',a=>a.live&&a.noindex))}
+ ${kpi('Stale live pages',fmtN(stl),'> '+S.th.stale+' years since the last update','',Lk('lf6','Stale live pages','Oldest first. Migrations can reset dates.',a=>a.live&&a.stale,null,'mo',1))}</div>
+ <div class="g2">${card('Status by top-level section','l1',420,'Click a segment to list the pages.')}${card('"Hide from search engines" by status','l2',420,'Empty means the CMS field was never set.')}</div>
+ <div class="g2">${card('Time since last update','l3',320,'The last bucket uses the same rule as the Stale card.')}${card('Bulk saves: most pages saved on one day by one account','l4',320,'Large bars usually mean an import or automation run. Click a bar to list the pages.')}</div>
+ <div class="card"><h3>Sections with the most never-published drafts</h3><p class="mut">Click a row to open the section.</p><div id="l7"></div></div>`;
+ stackBy('l1',A,a=>a.top,a=>a.status||'(none)',{h:true,maxCats:15,lw:160,colors:stc,on:(c,s,x)=>gl(s+' — '+c,'',A.filter(a=>x.catFn(a)===c&&(a.status||'(none)')===s),{cols:'life'})});
+ stackBy('l2',A,a=>a.status||'(none)',a=>a.hide||'(empty)',{colors:{Yes:C.sr,No:C.sg,'(empty)':C.g3},on:(c,s)=>gl(`${c} · hide = ${s}`,'',A.filter(a=>(a.status||'(none)')===c&&(a.hide||'(empty)')===s),{cols:'life'})});
+ const stl2='Stale (>'+S.th.stale+' y)',nst='12+ months, not yet stale',ao=['<3 months','3–6 months','6–12 months',nst,stl2,'unknown'];
+ stackBy('l3',A,a=>{if(!a.upd)return'unknown';if(a.stale)return stl2;const m=(S.asOf-a.upd)/2629800000;return m<3?'<3 months':m<6?'3–6 months':m<12?'6–12 months':nst},a=>a.status||'(none)',{colors:stc,catSort:(a,b)=>ao.indexOf(a)-ao.indexOf(b)});
+ const bm=[...grp(A.filter(a=>a.upd),a=>fmtD(a.upd)+' · '+a.ed)].sort((x,y)=>y[1].length-x[1].length).slice(0,10);
+ simpleBar('l4',bm.map(([k,v])=>[k,v.length,v.some(a=>a.etype==='System / service')?C.g2:C.blue]),{h:true,lw:300,onClick:(nm,v,p)=>gl('Saved on '+bm[p.dataIndex][0],'',bm[p.dataIndex][1],{cols:'life'})});
+ regTable('l7',[{k:'lib',l:'Site',v:n=>n.lib},{k:'path',l:'Section',v:n=>n.path},{k:'np',l:'Never published',v:n=>n.np,num:1},{k:'d',l:'Pages here',v:n=>n.direct,num:1},{k:'sh',l:'Share',v:n=>m1(100*n.npShare),f:n=>(100*n.npShare).toFixed(1)+'%',num:1}],curFolders().filter(n=>n.np>0),{k:'np',limit:50,click:n=>go({tab:'explorer',scope:{lib:n.lib,parts:n.parts},exp:{flag:'neverPub'}})})};
+
+/* PAGE: duplicates & clutter */
+PAGES.dups=()=>{const A=cur(),G=S.viewDups,AI=[...new Set(G.flatMap(g=>g.items))],T=t=>G.filter(g=>g.tier===t),XG=G.filter(g=>g.tier==='Same SEO title'&&new Set(g.items.map(a=>a.top)).size>1),PH_=A.filter(a=>a.ph),DC=A.filter(a=>a.draftCopy);
+ const hay=g=>g.items.map(a=>a.slug+' '+a.sT).join(' ').toLowerCase(),SC=cl('u','lib','p','st','seo','mo');
+ const listG=(title,sub,rows)=>openDrawer({title,sub,rows,cols:'groups',unit:'groups',total:0,sortK:'n',sortDir:-1,hay,click:g=>openDrawer({title:'Pages — '+(g.items[0].sT||g.items[0].slug),sub:g.tier,rows:g.items,cols:cl('u','lib','p','st','seo','mo','pu','ed'),prev:DR})});
+ $('#view').innerHTML=`<p class="tip">SEO titles are compared among <b>live</b> pages of the same site and URL language, ignoring case and spacing; the Descriptions column says whether those pages also share the description. Placeholder text is left out. "Draft copy" = a draft with the same SEO title as a live page.</p><div class="kpis">
+ ${kp('Duplicate groups',fmtN(G.length),'slug, title and draft-copy groups','o','d1',()=>listG('Duplicate groups','Click a group to see its pages',G),G.length)}
+ ${kp('Pages involved',fmtN(AI.length),P(AI.length,A.length)+' of pages','','d2',()=>{const s=new Set(AI);lst('Pages in duplicate groups','Every page in the groups',A,a=>s.has(a))},AI.length)}
+ ${kp('Same slug',fmtN(T('Same slug').length),'URLs used by 2+ CMS entries',T('Same slug').length?'r':'g','d3',()=>listG('Same slug','',T('Same slug')),T('Same slug').length)}
+ ${kp('Same SEO title',fmtN(T('Same SEO title').length),fmtN(G.filter(SAMED).length)+' with an identical description too','o','d4',()=>listG('Live pages sharing an SEO title','',T('Same SEO title')),T('Same SEO title').length)}
+ ${kp('Cross-section groups',fmtN(XG.length),'same title in 2+ top-level sections','','d5',()=>listG('Duplicate groups spanning sections','',XG),XG.length)}
+ ${kp('Draft copies',fmtN(DC.length),'drafts repeating a live title','o','d6',()=>gl('Drafts repeating a live title','',DC,{cols:'life'}),DC.length)}
+ ${kp('Placeholder text',fmtN(PH_.length),'"test", "SEO description"…',PH_.length?'r':'g','d7',()=>gl('Pages with placeholder SEO text','',PH_,{cols:SC}),PH_.length)}</div>
+ <div class="g2">${card('Duplicate groups by match type','d1c',300,'Click a bar to list the groups.')}${card('Pages with a duplicate SEO title, by top-level section','d2c',300,'Live pages only.')}</div>
+ <div class="g2">${card('Section pairs that share titles','d3c',320,'Top-level sections that appear together in the same title group. Click a bar to list the groups.')}${card('Most repeated descriptions (live pages)','d4c',320,'Hover a bar for the text; click to list the pages.')}</div>
+ <div class="card"><h3>Duplicate groups</h3><p class="mut">Click a row to see the pages in the group.</p><div id="d5t"></div></div>`;
+ const tiers=[['Same slug',g=>g.tier==='Same slug',C.sr],['Same title, same description',SAMED,C.blue],['Same title, descriptions differ',g=>g.tier==='Same SEO title'&&!SAMED(g),C.lblue],['Draft copy of a live page',g=>g.tier==='Draft copy of a live page',C.g2]];
+ simpleBar('d1c',tiers.map(([t,f,c])=>[t,G.filter(f).length,c]),{h:true,lw:200,onClick:n=>{const x=tiers.find(t=>t[0]===n);listG(n,'',G.filter(x[1]))}});
+ simpleBar('d2c',topN(cnt(A.filter(a=>a.live&&a.dupT),a=>a.top),12),{h:true,lw:160,onClick:n=>gl('Duplicate SEO titles — '+n,'',A.filter(a=>a.live&&a.dupT&&a.top===n),{cols:SC})});
+ const pk=g=>[...new Set(g.items.map(a=>a.top))].sort().join(' + '),pm=grp(XG,pk),pp=[...pm].sort((x,y)=>y[1].length-x[1].length).slice(0,10);
+ simpleBar('d3c',pp.map(([k,v])=>[k,v.length]),{h:true,lw:220,onClick:(n,v,p)=>{const x=pp[p.dataIndex];if(x)listG('Title groups: '+x[0],'',x[1])}});
+ const rd=[...grp(A.filter(a=>a.live&&uD(a)),a=>a.lib+'|'+a.lang+'|'+norm(a.sD))].map(x=>x[1]).filter(v=>v.length>1).sort((x,y)=>y.length-x.length).slice(0,10);
+ ec('d4c',{tooltip:{trigger:'item',confine:true,extraCssText:'white-space:normal;max-width:360px',formatter:p=>`${esc(short(rd[p.dataIndex][0].sD,220))}<br><b>${p.value} pages</b>`},grid:{left:10,right:20,top:20,bottom:20,containLabel:true},xAxis:{type:'value',...AX()},
+  yAxis:{type:'category',inverse:true,data:rd.map(v=>short(v[0].sD,40)),axisLabel:{color:TXT,width:230,overflow:'truncate'},axisLine:{lineStyle:{color:C.g3}}},series:[{type:'bar',data:rd.map(v=>v.length),itemStyle:{color:C.blue}}]})?.on('click',p=>gl('Same description','',rd[p.dataIndex],{cols:SC}));
+ regTable('d5t',DR_COLS.groups(),G,{k:'n',limit:60,file:'duplicate-groups.csv',click:g=>openDrawer({title:'Pages — '+(g.items[0].sT||g.items[0].slug),sub:g.tier,rows:g.items,cols:cl('u','lib','p','st','seo','mo','pu','ed')})})};
+
+/* PAGE: teasers & social */
+PAGES.social=()=>{const A=cur(),N=A.length,cI=A.filter(a=>a.cImg),dI=A.filter(a=>a.defImg),nI=A.filter(a=>!a.tI),oI=A.filter(a=>a.oI),oT=A.filter(a=>a.oT),oD=A.filter(a=>a.oD),tro=A.filter(a=>/(\.\.\.|…)$/.test(a.tO)),IC=cl('u','lib','p','st','tI','oI','tT','tO');
+ const ik=a=>a.cImg?'Custom image':a.defImg?'Default / placeholder':'No image';
+ $('#view').innerHTML=`<p class="tip">Default image pattern: <code>${esc(S.th.img||'(none)')}</code> (change on the Load screen). The export does not show whether the site falls back from empty OG fields to the SEO or teaser fields, so check one page's rendered meta tags before treating empty OG fields as a defect.</p><div class="kpis">
+ ${kp('Custom teaser image',P(cI.length,N),fmtN(cI.length)+' pages',kc(pct(cI.length,N)),'s1',()=>gl('Pages with a custom teaser image','',cI,{cols:IC}),cI.length)}
+ ${kp('Default / placeholder',fmtN(dI.length),P(dI.length,N)+' of pages',dI.length?'o':'g','s2',()=>gl('Pages with a default or placeholder teaser image','',dI,{cols:IC}),dI.length)}
+ ${kp('No teaser image',fmtN(nI.length),P(nI.length,N)+' of pages',nI.length?'o':'g','s3',()=>gl('Pages with no teaser image','',nI,{cols:IC}),nI.length)}
+ ${kp('OG image set',P(oI.length,N),fmtN(oI.length)+' pages','','s4',()=>gl('Pages with no OG image','',A.filter(a=>!a.oI),{cols:IC}),N-oI.length)}
+ ${kp('OG title set',P(oT.length,N),fmtN(oT.length)+' pages','','s5',()=>gl('Pages with no OG title','',A.filter(a=>!a.oT),{cols:IC}),N-oT.length)}
+ ${kp('OG description set',P(oD.length,N),fmtN(oD.length)+' pages','','s6',()=>gl('Pages with no OG description','',A.filter(a=>!a.oD),{cols:IC}),N-oD.length)}
+ ${kp('Truncated overlines',fmtN(tro.length),'overline ends in …','','s7',()=>gl('Pages whose overline ends in …','',tro,{cols:IC}),tro.length)}</div>
+ <div class="g2">${card('Teaser image by top-level section (%)','sc1',420,'Click a segment to list the pages.')}${card('Open Graph fields by top-level section (% filled)','sc2',420)}</div>
+ <div class="g2">${card('Most used overlines','sc3',380,'Overlines are the small label above a teaser title. Click a bar to list the pages.')}${card('Teaser text compared with SEO text','sc4',380,'Teaser fields that simply repeat the SEO fields are common and usually fine.')}</div>
+ <div class="card"><h3>Most reused images</h3><p class="mut">Teaser and OG images used on more than one page. Click a row to list the pages.</p><div id="sc5"></div></div>`;
+ stackBy('sc1',A,a=>a.top,ik,{h:true,pct:true,maxCats:12,lw:160,colors:{'Custom image':C.sg,'Default / placeholder':C.sy,'No image':C.sr},on:(c,s,x)=>gl(s+' — '+c,'',A.filter(a=>x.catFn(a)===c&&ik(a)===s),{cols:IC})});
+ const tops=topSecs(A),og=[['OG title',a=>a.oT,C.blue],['OG description',a=>a.oD,C.lblue],['OG image',a=>a.oI,C.navy]];
+ ec('sc2',{tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},legend:{top:0,textStyle:{color:TXT}},grid:{left:10,right:20,top:40,bottom:20,containLabel:true},xAxis:{type:'value',max:100,...AX()},yAxis:{type:'category',inverse:true,data:tops,axisLabel:{color:TXT,width:160,overflow:'truncate'},axisLine:{lineStyle:{color:C.g3}}},
+  series:og.map(([n,f,c])=>({name:n,type:'bar',itemStyle:{color:c},data:tops.map(t=>rate(A.filter(a=>a.top===t),f))}))});
+ simpleBar('sc3',topN(cnt(A.filter(a=>a.tO),a=>a.tO),15),{h:true,lw:240,onClick:n=>gl('Overline: '+n,'',A.filter(a=>a.tO===n||short(a.tO,240)===n),{cols:IC})});
+ const tc=a=>!a.tT||!a.sT?'Teaser or SEO title empty':norm(a.tT)===norm(a.sT)?'Teaser title = SEO title':'Teaser title differs';
+ pie('sc4',[...cnt(A,tc).entries()],{onClick:n=>gl(n,'',A.filter(a=>tc(a)===n),{cols:cl('u','lib','p','tT','sT','tD','sD')})});
+ const im=new Map();A.forEach(a=>{for(const [u,w] of [[a.tI,'teaser'],[a.oI,'OG']])if(u){let o=im.get(u);if(!o)im.set(u,o={u,pages:new Set(),t:0,o:0});o.pages.add(a);w==='teaser'?o.t++:o.o++}});
+ const ir=[...im.values()].filter(o=>o.pages.size>1);
+ regTable('sc5',[{k:'pv',l:'Preview',v:o=>o.u,f:o=>thumb(o.u)},{k:'f',l:'File',v:o=>o.u.split('/').pop(),f:o=>`<span class="slug">${esc(o.u.split('/').pop())}</span>`},{k:'n',l:'Pages',v:o=>o.pages.size,num:1},{k:'t',l:'As teaser',v:o=>o.t,num:1},{k:'o',l:'As OG',v:o=>o.o,num:1},{k:'d',l:'Matches default pattern',v:o=>S.imgRe.test(o.u)?'Yes':'No'},{k:'url',l:'URL',v:o=>o.u}],ir,{k:'n',limit:40,file:'reused-images.csv',click:o=>gl('Pages using '+o.u.split('/').pop(),'',[...o.pages],{cols:IC})})};
+
+/* PAGE: people */
+PAGES.people=()=>{const A=cur(),N=A.length,cn=cnt(A,a=>a.ed),pp=A.filter(a=>a.etype==='Person'),sy=A.filter(a=>a.etype==='System / service'),pc=cnt(pp,a=>a.ed),top=topN(pc,1)[0]||['(none)',0],recent=A.filter(a=>a.upd&&(S.asOf-a.upd)<365*864e5);
+ const g=new Map();for(const a of A){let o=g.get(a.ed);if(!o)g.set(a.ed,o={c:a.ed,raw:new Set(),type:a.etype,n:0,secs:new Set(),m:0,lv:0,np:0,last:null});o.raw.add(a.edRaw);o.n++;o.secs.add(a.top);o.m+=a.meta;if(a.live)o.lv++;if(!a.live&&!a.pub)o.np++;if(a.upd&&(!o.last||a.upd>o.last))o.last=a.upd}
+ const gR=[...g.values()],cC=[{k:'c',l:'Account',v:o=>o.c,f:o=>`${esc(o.c)}${[...o.raw][0]&&[...o.raw][0]!==o.c?`<br><span class="mut" style="margin:0">${esc(short([...o.raw][0],60))}</span>`:''}`},{k:'ty',l:'Type',v:o=>o.type},{k:'n',l:'Pages',v:o=>o.n,num:1},{k:'s',l:'Top-level sections',v:o=>o.secs.size,num:1},{k:'m',l:'Metadata %',v:o=>m1(100*o.m/o.n),num:1,f:o=>(100*o.m/o.n).toFixed(1)+'%'},{k:'lv',l:'Live %',v:o=>m1(100*o.lv/o.n),num:1,f:o=>(100*o.lv/o.n).toFixed(1)+'%'},{k:'np',l:'Never published',v:o=>o.np,num:1},{k:'last',l:'Latest update',v:o=>fmtD(o.last)}];
+ const of=name=>A.filter(a=>a.ed===name),oc=o=>listA(o.c+' — pages','Pages this account updated last',of(o.c),{ex:{exp:{q:o.c}},prev:DR});
+ $('#view').innerHTML=`<p class="tip">The export holds only the <b>last</b> editor and the <b>last</b> update per page, so these charts show who touched each page most recently, not all activity. System / service accounts match: <code>${esc(S.th.sys)}</code>.</p><div class="kpis">
+ ${kp('Accounts',fmtN(cn.size),fmtN(pc.size)+' named editors','','p1',()=>openDrawer({title:'All accounts',sub:'Click an account to list its pages',rows:gR,cols:cC,unit:'accounts',total:0,sortK:'n',sortDir:-1,hay:o=>o.c.toLowerCase(),click:oc}),cn.size)}
+ ${kp('System / service updates',P(sy.length,N),fmtN(sy.length)+' pages last saved by automation or a service account',sy.length/N>.3?'o':'','p2',()=>lst('Last updated by a system or service account','',A,a=>a.etype==='System / service'),sy.length)}
+ ${kp('Most active named editor',fmtN(top[1]),P(top[1],N)+' of pages · '+esc(top[0]),'','p3',()=>listA(top[0]+' — pages','',of(top[0]),{ex:{exp:{q:top[0]}}}),top[1])}
+ ${kp('Changed in last 12 months',fmtN(recent.length),P(recent.length,N)+' of pages','','p4',()=>listA('Last changed in the past 12 months','',recent,{sortK:'mo',sortDir:-1}),recent.length)}</div>
+ ${card('Last updates per month, past 24 months (by account type)','pc0',320,'Each page counts once, in the month of its latest change.')}
+ <div class="g2">${card('Most active accounts by top-level section','pc1',480,'Click a segment to list the pages.')}${card('Account type','pc2',480)}</div><div class="card"><h3>Account scorecard</h3><p class="mut">Click a row to list that account's pages.</p><div id="p4t"></div></div>`;
+ const m0=new Date(Date.UTC(S.asOf.getUTCFullYear(),S.asOf.getUTCMonth()-23,1)),mk=d=>d.toISOString().slice(0,7);
+ stackBy('pc0',A,a=>a.upd&&a.upd>=m0?mk(a.upd):null,a=>a.etype,{colors:{'Person':C.blue,'System / service':C.g2,'Unknown':C.g3}});
+ const t15=new Set(topN(cn,15).map(x=>x[0]));
+ stackBy('pc1',A.filter(a=>t15.has(a.ed)),a=>a.ed,a=>a.top,{h:true,lw:230,top:8,catSort:(x,y)=>cn.get(y)-cn.get(x),on:(c,s,x)=>gl(c+' — '+s,'',A.filter(a=>a.ed===c&&(s==='Other'?x.rest.has(a.top):a.top===s)))});
+ pie('pc2',[...cnt(A,a=>a.etype).entries()].map(([k,n])=>[k,n,{'Person':C.blue,'System / service':C.g2,'Unknown':C.g3}[k]]),{onClick:n=>lst('Account type: '+n,'',A,a=>a.etype===n)});
+ regTable('p4t',cC,gR,{k:'n',limit:40,click:oc})};
+
+/* PAGE: explorer */
+function exRows(){const e=S.exp,q=e.q.toLowerCase(),sc=S.scope,mf=e.miss?MISSFN[e.miss]:null;
+ return cur().filter(a=>(!e.lib||a.lib===e.lib)&&(!e.flag||a.flags.includes(e.flag))&&(!mf||mf(a))&&(!e.status||(a.status||'(none)')===e.status)&&(!e.lang||a.lang===e.lang)&&(!e.folder||a.path===e.folder||a.path.startsWith(e.folder+' / '))&&(!e.direct||!sc||a.parts.length<=sc.parts.length)&&(!q||a.hay.includes(q)))}
+function drawExplorer(){const rows=exRows();regTable('ex_tb',cl('lib','u','t','seo','p','lg','st','mo','pu','ed','fl','id'),rows,{k:'mo',dir:-1,limit:200,file:'filtered-pages.csv'});$('#ex_n').textContent=fmtN(rows.length)+' pages · '+fmtN(rows.filter(a=>a.live).length)+' live'}
+PAGES.explorer=()=>{const A=cur(),e=S.exp,sc=S.scope,off=sc?sc.parts.length:0,direct=[],m=new Map();
+ for(const a of A){if(a.parts.length<=off){direct.push(a);continue}const parts=a.parts.slice(0,off+1),k=a.lib+'\u0001'+parts.join(' / ');let o=m.get(k);if(!o)m.set(k,o={lib:a.lib,name:a.parts[off],parts,f:S.folders.get(k),n:0,d:0,lv:0,meta:0,np:0});o.n++;if(a.parts.length===off+1)o.d++;if(a.live)o.lv++;o.meta+=a.meta;if(!a.live&&!a.pub)o.np++}
+ const rows=[...m.values()],opt=(arr,sel,lab=x=>x)=>arr.map(x=>`<option value="${esc(x)}" ${sel===x?'selected':''}>${esc(lab(x))}</option>`).join('');
+ const crumbs=sc?[`<a href="#" data-crumb="-1">All sites</a>`,`<a href="#" data-crumb="0">${esc(sc.lib)}</a>`,...sc.parts.map((p,i)=>`<a href="#" data-crumb="${i+1}">${esc(p)}</a>`)].join(' › '):'All sites';
+ $('#view').innerHTML=`<div class="card"><h3>Section contents</h3><p class="mut">${crumbs} · choose a section in the header dropdowns, click a breadcrumb, or click a row below.</p>
+ <div class="kpis">${kp('Pages directly here',fmtN(direct.length),'','','e1',()=>listA('Pages directly in this section','',direct),direct.length)}
+ ${kp('Subsections',fmtN(rows.length),'next level down','','e2',()=>listF('Subsections','Click a row to open the section.',rows.map(o=>o.f).filter(Boolean)),rows.length)}
+ ${kp('Total in view',fmtN(A.length),'incl. subsections','','e3',()=>listA('All pages in view','',A),A.length)}
+ ${kp('Live',fmtN(A.filter(a=>a.live).length),P(A.filter(a=>a.live).length,A.length)+' of pages','','e4',()=>lst('Live pages in view','',A,a=>a.live),A.filter(a=>a.live).length)}</div>
+ <div class="g2">${card('Status','cn1',260)}${card('URL language','cn2',260)}</div><div id="cn_tb"></div></div>
+ <div class="card"><h3>Pages</h3>${e.miss?`<div class="bar"><span class="b r">Filter: ${esc(e.miss)}</span><button class="btn s" data-miss-clear>✕ Clear this filter</button></div>`:''}
+ <div class="bar"><input id="ex_q" placeholder="Search slug, name, SEO title, editor, ID…" value="${esc(e.q)}" style="width:280px"><select id="ex_lib"><option value="">All sites</option>${opt(activeLibs(),e.lib)}</select>
+ <select id="ex_flag"><option value="">Any flag</option>${Object.entries(FLAGS).map(([k,v])=>`<option value="${k}" ${e.flag===k?'selected':''}>${v[0]}</option>`).join('')}</select><select id="ex_lang"><option value="">Any language</option>${opt([...new Set(A.map(a=>a.lang))].sort(),e.lang,LN)}</select>
+ ${sc&&off?`<select id="ex_direct"><option value="">Include subsections</option><option value="1" ${e.direct?'selected':''}>Only pages directly in this section</option></select>`:''}<span id="ex_n" class="mut" style="margin:0"></span></div><div id="ex_tb"></div></div>`;
+ pie('cn1',topN(cnt(A,a=>a.status||'(none)'),8));pie('cn2',topN(cnt(A,a=>LN(a.lang)),8));
+ regTable('cn_tb',[{k:'name',l:'Subsection',v:o=>(sc?'':o.lib+' · ')+o.name,f:o=>'▸ '+esc((sc?'':o.lib+' · ')+o.name)},{k:'n',l:'Pages (incl. sub)',v:o=>o.n,num:1,f:o=>fmtN(o.n)},{k:'d',l:'Pages directly',v:o=>o.d,num:1},{k:'lv',l:'Live',v:o=>o.lv,num:1},
+  {k:'m',l:'Metadata %',v:o=>m1(100*o.meta/o.n),num:1,f:o=>(100*o.meta/o.n).toFixed(1)+'%'},{k:'np',l:'Never published',v:o=>o.np,num:1},{k:'h',l:'Health',v:o=>o.f?o.f.health:0,num:1,f:o=>o.f&&o.f.direct?hb(o.f.health):'–'},{k:'i',l:'Issues',v:o=>o.f?o.f.issues.map(i=>ISS[i][0]).join('; '):'',f:o=>o.f?issBadges(o.f):''}],rows,{k:'n',limit:100,file:'section-contents.csv',click:o=>drill(o.lib,o.parts)});drawExplorer()};
+
+/* PAGE: URL & naming */
+PAGES.naming=()=>{const A=cur(),bad=A.filter(a=>a.nm.length),ks=Object.keys(NMR).filter(k=>k!=='pat'||S.re),rc=ks.map(k=>[k,A.filter(a=>a.nm.includes(k))]),tops=topSecs(A);
+ const N=nameFolders(),fr=N.map(n=>({n,r:Object.keys(NMF).filter(k=>NMF[k][1](n))})).filter(x=>x.r.length),top=rc.slice().sort((a,b)=>b[1].length-a[1].length)[0],nmc=cl('u','lib','p','nm','st','sT','ed');
+ const L=A.filter(a=>a.live&&uT(a)),afx=a=>{const t=a.sT,p=t.match(/^(.{1,25}?)\s+[|–—-]\s+/),s=t.match(/\s+[|–—-]\s+(.{1,25})$/);return p?`Prefix "${p[1]} ${t.slice(p[1].length).trim()[0]}"`:s?`Suffix "${t.slice(-s[1].length-3).trim()[0]} ${s[1]}"`:'No brand prefix or suffix'};
+ const tp=S.tre?L.filter(a=>!S.tre.test(a.sT)):[];
+ $('#view').innerHTML=`<div class="kpis">
+ ${kp('Pages with URL issues',fmtN(bad.length),P(bad.length,A.length)+' of pages',bad.length?'o':'g','n1',()=>gl('Pages with URL issues','',bad,{cols:nmc}),bad.length)}
+ ${kp('Clean URLs',fmtN(A.length-bad.length),P(A.length-bad.length,A.length)+' of pages','g','n2',()=>gl('Pages with clean URLs','',A.filter(a=>!a.nm.length)),A.length-bad.length)}
+ ${kp('Sections with naming issues',fmtN(fr.length),P(fr.length,N.length)+' of sections',fr.length?'o':'g','n3',()=>glF('Sections with naming issues','',fr),fr.length)}
+ ${top&&top[1].length?kp('Most common issue',fmtN(top[1].length),esc(NMR[top[0]][0]),'','n4',()=>gl(NMR[top[0]][0],'',top[1],{cols:nmc}),top[1].length):kpi('Most common issue','–','none found','g')}
+ ${S.tre?kp('Titles off your pattern',fmtN(tp.length),P(tp.length,L.length)+' of live titles',tp.length?'o':'g','n5',()=>gl('Live SEO titles that do not match your title pattern','',tp,{cols:cl('u','lib','p','sT','st')}),tp.length):''}</div>
+ ${S.re?'':'<p class="tip">No custom URL pattern set. Add one under <b>Load data → Governance rules</b> to also check URLs against your own convention.</p>'}
+ <div class="g2">${card('Pages by URL rule broken','n1c',360,'Click a bar to list the pages. "Verify" rules are hints: a story about testing can legitimately end in -test.')}${card('URL issues by top-level section (%)','n2c',360)}</div>
+ ${card('SEO title branding (live pages)','n3c',320,'How live SEO titles start or end, detected from a short text before or after " | ", " – " or " - ". Click a bar to list the pages.')}
+ <div class="card"><h3>Pages that break a URL rule</h3><div id="n_tb"></div></div><div class="card"><h3>Sections with naming issues</h3><p class="mut">Click a row to list the pages in the section.</p><div id="n_ft"></div></div>`;
+ simpleBar('n1c',rc.map(([k,l])=>[NMR[k][0],l.length]),{h:true,lw:300,onClick:name=>{const k=ks.find(k=>NMR[k][0]===name);gl(name,'',A.filter(a=>a.nm.includes(k)),{cols:nmc})}});
+ stk('n2c',tops,[{n:'Clean',c:C.blue,d:tops.map(t=>rate(A.filter(a=>a.top===t),a=>!a.nm.length))},{n:'URL issue',c:C.orange,d:tops.map(t=>rate(A.filter(a=>a.top===t),a=>a.nm.length))}],{h:true,pct:true,on:(t,s)=>gl(s+' — '+t,'',A.filter(a=>a.top===t&&(s==='Clean')===!a.nm.length),{cols:nmc})});
+ const am=topN(cnt(L,afx),8);simpleBar('n3c',am,{h:true,lw:240,onClick:n=>gl('SEO title: '+n,'',L.filter(a=>afx(a)===n),{cols:cl('u','lib','p','sT','st')})});
+ regTable('n_tb',nmc,bad,{k:'u',dir:1,limit:200,file:'url-issues.csv'});
+ regTable('n_ft',FCOLS,fr,{k:'n',limit:100,file:'section-naming-issues.csv',click:x=>gl('Pages in '+x.n.path,x.n.lib,A.filter(a=>a.lib===x.n.lib&&(a.path===x.n.path||a.path.startsWith(x.n.path+' / '))),{cols:nmc})})};
+
+/* PAGE: language & translations */
+PAGES.lang=()=>{const A=cur(),def=S.th.lang,tr=A.filter(a=>a.lang!==def),orph=A.filter(a=>a.orphan),ut=A.filter(a=>a.untr),mm=A.filter(a=>a.langMis),D=A.filter(a=>a.lang===def&&a.live),cov=D.filter(a=>a.trs.length),lg=cnt(A,a=>a.lang);
+ const LC=cl('u','lib','lg','tl','st','seo'),UC=cl('u','src','lg','st','sT','srcT');
+ $('#view').innerHTML=`<p class="tip">URL language comes from a language prefix (de/…) or, when the plain version of the same slug exists, a language suffix (…-es). Pages without either are treated as ${esc(LN(def))}. A translation's source is the ${esc(LN(def))} page with the same path. Text language is <b>guessed</b> from frequent words in the SEO title and descriptions (English, German, French, Spanish, Portuguese only), so treat mismatches as hints.</p><div class="kpis">
+ ${kpi('URL languages',fmtN(lg.size),esc([...lg.keys()].map(LN).join(', ')))}
+ ${kp('Translated pages',fmtN(tr.length),P(tr.length,A.length)+' of pages','','g1',()=>gl('Pages in another language than '+LN(def),'',tr,{cols:UC}),tr.length)}
+ ${kp('Translations without source',fmtN(orph.length),'no '+esc(LN(def))+' page at the same path',orph.length?'o':'g','g2',()=>gl('Translations without a source page','',orph,{cols:LC}),orph.length)}
+ ${kp('Untranslated copies',fmtN(ut.length),'same SEO title as the source',ut.length?'o':'g','g3',()=>gl('Translations that repeat the source SEO title','',ut,{cols:UC}),ut.length)}
+ ${kp('Likely language mismatch',fmtN(mm.length),'text language ≠ URL language',mm.length?'o':'g','g4',()=>gl('Likely language mismatches','',mm,{cols:LC}),mm.length)}
+ ${kp('Translation coverage',P(cov.length,D.length),'of live '+esc(LN(def))+' pages have a translation','','g5',()=>gl('Live '+LN(def)+' pages with a translation','',cov,{cols:cl('u','lib','p','st','sT')}),cov.length)}</div>
+ <div class="g2">${card('Pages by URL language and status','lg1',320,'Click a segment to list the pages.')}${card('Guessed text language by URL language','lg2',320,'Pages where no language could be guessed are left out. Click a segment to list the pages.')}</div>
+ ${card('Translation coverage by top-level section','lg3',360,`Share of live ${esc(LN(def))} pages that have at least one translation. Information only: not every section needs translating.`)}
+ <div class="card"><h3>Likely language mismatches</h3><div id="lg_mm"></div></div>
+ <div class="g2"><div class="card"><h3>Untranslated copies</h3><div id="lg_ut"></div></div><div class="card"><h3>Translations without source</h3><div id="lg_or"></div></div></div>`;
+ stackBy('lg1',A,a=>LN(a.lang),a=>a.status||'(none)',{colors:{Published:C.sg,Draft:C.g3,'Published with Changes':C.sy},on:(c,s)=>gl(c+' · '+s,'',A.filter(a=>LN(a.lang)===c&&(a.status||'(none)')===s),{cols:LC})});
+ stackBy('lg2',A.filter(a=>a.tl),a=>LN(a.lang)+' URL',a=>LN(a.tl)+' text',{on:(c,s)=>gl(c+' · '+s,'',A.filter(a=>a.tl&&LN(a.lang)+' URL'===c&&LN(a.tl)+' text'===s),{cols:LC})});
+ const ts=topSecs(D);simpleBar('lg3',ts.map(t=>{const as=D.filter(a=>a.top===t),v=rate(as,a=>a.trs.length>0);return[t,v,C.blue]}),{h:true,lw:160,max:100,onClick:t=>gl('Live '+LN(def)+' pages in '+t+' without translation','',D.filter(a=>a.top===t&&!a.trs.length),{cols:cl('u','lib','p','st','sT')})});
+ regTable('lg_mm',LC.concat([AC.p,AC.id]),mm,{k:'u',dir:1,limit:100,file:'language-mismatches.csv'});
+ regTable('lg_ut',UC,ut,{k:'u',dir:1,limit:50,file:'untranslated-copies.csv'});
+ regTable('lg_or',cl('u','lg','st','sT'),orph,{k:'u',dir:1,limit:50,file:'translations-without-source.csv'})};
+
+/* PAGE: indexing risk */
+PAGES.rights=()=>{const A=cur(),tops=topSecs(A),rc=cl('u','lib','p','st','rk','hd','seo'),by=l=>A.filter(a=>a.rl===l),k=x=>A.filter(RK[x][2]);
+ $('#view').innerHTML=`<p class="tip"><b>High</b> = a live page in a non-production section, live placeholder SEO text, or a slug used by two entries. <b>Medium</b> = indexable page missing a title or description, a duplicate title on an indexable page, or unpublished changes on a live page. <b>Low</b> = live but hidden from search engines, or the search-engine setting left empty. "Indexable" = live and not hidden. The export does not include canonical tags or robots.txt rules, so they are not checked.</p><div class="kpis">
+ ${kp('High risk',fmtN(by(3).length),P(by(3).length,A.length)+' of pages',by(3).length?'r':'g','r1',()=>gl('High-risk pages','',by(3),{cols:rc,sortK:'rk',sortDir:-1}),by(3).length)}
+ ${kp('Medium risk',fmtN(by(2).length),P(by(2).length,A.length)+' of pages',by(2).length?'o':'g','r2',()=>gl('Medium-risk pages','',by(2),{cols:rc,sortK:'rk',sortDir:-1}),by(2).length)}
+ ${kp('Low risk',fmtN(by(1).length),'settings to confirm','','r3',()=>gl('Low-risk pages','',by(1),{cols:rc}),by(1).length)}
+ ${kp('Live in non-production',fmtN(k('np').length),'test, unpublished… sections',k('np').length?'r':'g','r4',()=>gl(RK.np[0],'',k('np'),{cols:rc}),k('np').length)}
+ ${kp('Indexable, missing title or desc.',fmtN(k('noTD').length),'','o','r5',()=>gl(RK.noTD[0],'',k('noTD'),{cols:rc}),k('noTD').length)}
+ ${kp('Live, hidden from search',fmtN(k('hid').length),'verify intent','','r6',()=>gl(RK.hid[0],'',k('hid'),{cols:rc}),k('hid').length)}</div>
+ <div class="g2">${card('Risk level by top-level section','r1c',380,'Click a segment to list the pages.')}${card('Risk findings by type','r3c',380,'A page can have several findings. Click a bar to list the pages.')}</div>
+ <div class="card"><h3>Risk register</h3><p class="mut">All pages with at least one indexing finding, highest risk first.</p><div id="r_tb"></div></div>`;
+ const lv=[3,2,1,0],lc=[C.sr,C.sy,C.xlblue,C.sg];
+ stk('r1c',tops,lv.map((l,i)=>({n:RL[l],c:lc[i],d:tops.map(t=>A.filter(a=>a.top===t&&a.rl===l).length)})),{h:true,on:(t,s)=>gl(s+' risk — '+t,'',A.filter(a=>a.top===t&&RL[a.rl]===s),{cols:rc,sortK:'rk',sortDir:-1})});
+ simpleBar('r3c',Object.keys(RK).map(x=>[RK[x][0],k(x).length,RK[x][1]==='h'?C.sr:RK[x][1]==='m'?C.sy:C.lblue]),{h:true,lw:260,onClick:n=>{const x=Object.keys(RK).find(x=>RK[x][0]===n);gl(n,'',k(x),{cols:rc})}});
+ regTable('r_tb',rc,A.filter(a=>a.rl>0),{k:'rk',limit:200,file:'indexing-risk-register.csv'})};
+
+/* PAGE: ROT analysis */
+PAGES.rot=()=>{const A=cur(),tops=topSecs(A),R=A.filter(a=>a.rot.R),O=A.filter(a=>a.rot.O),T=A.filter(a=>a.rot.T),any=A.filter(aR),rc=cl('u','lib','p','st','rot','seo','mo');
+ const rec=(n,s)=>s>=.8&&n>=3?['Archive section','r']:s>=.4?['Review section','o']:s>=.15?['Targeted clean-up','m']:['Keep','i'];
+ const fr=groupFolders(A).map(o=>{const r=o.as.filter(aR),s=o.as.length?r.length/o.as.length:0;return{...o,r,s,rec:rec(o.as.length,s),lv:r.filter(a=>a.live).length}}).filter(o=>o.r.length);
+ const rsn=[['Non-production section',a=>a.badFolder],['Abandoned draft',a=>a.abandon],['Draft named test / old / copy',a=>a.leafSmell&&!a.live]];
+ $('#view').innerHTML=`<p class="tip"><b>Redundant</b> = slug used twice, live page with the same SEO title <i>and</i> description as another, or a draft repeating a live title. <b>Obsolete</b> = in a non-production section, an abandoned draft (never published, no change for ${S.th.stuck}+ days), or a draft whose name contains test / old / copy. <b>Trivial</b> = no usable SEO title, no SEO description and no teaser text. A page can be in more than one class; both pages of a duplicate pair count, so Redundant is an upper bound.</p><div class="kpis">
+ ${kp('ROT pages',fmtN(any.length),P(any.length,A.length)+' of pages',pct(any.length,A.length)>25?'r':'o','t0',()=>gl('Pages with any ROT class','',any,{cols:rc}),any.length)}
+ ${kp('Redundant',fmtN(R.length),'probable duplicates','o','t1',()=>gl('Redundant pages','',R,{cols:rc}),R.length)}
+ ${kp('Obsolete',fmtN(O.length),'','o','t2',()=>gl('Obsolete pages','',O,{cols:rc}),O.length)}
+ ${kp('Trivial',fmtN(T.length),'','o','t3',()=>gl('Trivial pages','',T,{cols:rc}),T.length)}
+ ${kp('ROT pages that are live',fmtN(any.filter(a=>a.live).length),'visible to visitors','','t4',()=>gl('Live ROT pages','',any.filter(a=>a.live),{cols:rc}),any.filter(a=>a.live).length)}</div>
+ <div class="g2">${card('ROT classes by top-level section','t1c',380,'Click a segment to list the pages.')}${card('Why pages are obsolete','t2c',380,'Click a bar to list the pages.')}</div>
+ <div class="card"><h3>Section recommendations</h3><p class="mut">Share of the pages directly in a section that are ROT. Archive ≥ 80% (3+ pages) · Review ≥ 40% · Targeted clean-up ≥ 15%. Click a row to list the ROT pages.</p><div id="t_ft"></div></div>
+ <div class="card"><h3>ROT pages</h3><div id="t_tb"></div></div>`;
+ stk('t1c',tops,[['Redundant','R',C.blue],['Obsolete','O',C.orange],['Trivial','T',C.g2]].map(([n,k,c])=>({n,c,d:tops.map(t=>A.filter(a=>a.top===t&&a.rot[k]).length)})),{h:true,on:(t,s)=>{const k={Redundant:'R',Obsolete:'O',Trivial:'T'}[s];gl(s+' — '+t,'',A.filter(a=>a.top===t&&a.rot[k]),{cols:rc})}});
+ simpleBar('t2c',rsn.map(([n,f])=>[n,A.filter(f).length]),{h:true,lw:220,onClick:n=>gl(n,'',A.filter(rsn.find(x=>x[0]===n)[1]),{cols:rc})});
+ regTable('t_ft',[{k:'lib',l:'Site',v:o=>o.lib},{k:'p',l:'Section',v:o=>o.path},{k:'n',l:'Pages here',v:o=>o.as.length,num:1},{k:'r',l:'ROT pages',v:o=>o.r.length,num:1},{k:'lv',l:'of which live',v:o=>o.lv,num:1},{k:'s',l:'ROT share',v:o=>m1(100*o.s),num:1,f:o=>(100*o.s).toFixed(1)+'%'},{k:'rec',l:'Recommendation',v:o=>o.rec[0],f:o=>`<span class="b ${o.rec[1]}">${o.rec[0]}</span>`}],fr,{k:'s',limit:100,file:'rot-section-recommendations.csv',click:o=>gl('ROT pages in '+o.path,o.lib,o.r,{cols:rc})});
+ regTable('t_tb',rc,any,{k:'u',dir:1,limit:200,file:'rot-pages.csv'})};
+
+/* PAGE: SEO readiness */
+PAGES.find=()=>{const A=cur(),tops=topSecs(A),N=A.length,avg=N?sum(A,a=>a.fs)/N:0,lo=A.filter(a=>a.fs<50),mid=A.filter(a=>a.fs>=50&&a.fs<80),hi=A.filter(a=>a.fs>=80),fcols=cl('u','lib','p','st','fs','fw','seo');
+ const comp=FC.map(c=>[c[0],N?pct(sum(A,a=>c[2](a)),N*c[1]):0]),weak=comp.slice().sort((a,b)=>a[1]-b[1])[0];
+ const fr=groupFolders(A).filter(o=>o.as.length>=5).map(o=>({...o,avg:sum(o.as,a=>a.fs)/o.as.length}));
+ $('#view').innerHTML=`<p class="tip">Score per page (0–100): SEO title 25 (half if outside ${S.th.tMin}–${S.th.tMax} characters) · SEO description 25 (half if outside ${S.th.dMin}–${S.th.dMax} characters or auto-truncated) · unique title among live pages 10 · indexable (not hidden, not in a non-production section) 10 · custom teaser or OG image 10 · clean text (no placeholder, markup or joined sentences) 10 · clean URL 10. Drafts are scored as if published.</p><div class="kpis">
+ ${kpi('Average score',avg.toFixed(1),'out of 100',N?kc(avg):'')}
+ ${kp('Poor (< 50)',fmtN(lo.length),P(lo.length,N)+' of pages',lo.length?'r':'g','f1',()=>gl('Pages scoring below 50','Lowest first',lo,{cols:fcols,sortK:'fs',sortDir:1}),lo.length)}
+ ${kp('Fair (50–79)',fmtN(mid.length),P(mid.length,N)+' of pages','o','f2',()=>gl('Pages scoring 50–79','',mid,{cols:fcols,sortK:'fs',sortDir:1}),mid.length)}
+ ${kp('Good (≥ 80)',fmtN(hi.length),P(hi.length,N)+' of pages','g','f3',()=>gl('Pages scoring 80 or more','',hi,{cols:fcols}),hi.length)}
+ ${weak?kp('Weakest component',weak[1].toFixed(0)+'%',esc(weak[0])+' (share of points earned)','o','f4',()=>gl('Weak: '+weak[0],'Pages that lose points here',A.filter(a=>a.fsw.includes(weak[0])),{cols:fcols}),N):''}</div>
+ <div class="g2">${card('Score distribution','f1c',320,'Click a bar to list the pages.')}${card('Points earned by component (%)','f2c',320,'Click a bar to list pages that lose points on it.')}</div>
+ ${card('Average score by top-level section','f3c',360,'Click a bar to list the pages, weakest first.')}
+ <div class="g2"><div class="card"><h3>Lowest-scoring sections</h3><p class="mut">Sections with 5+ pages. Click a row to list the pages.</p><div id="f_ft"></div></div><div class="card"><h3>Weakest pages</h3><div id="f_tb"></div></div></div>`;
+ const bins=Array.from({length:10},(_,i)=>({n:i*10+'–'+(i*10+9),lo:i*10,c:i<5?C.sr:i<8?C.sy:C.sg}));
+ simpleBar('f1c',bins.map(b=>[b.n,A.filter(a=>Math.min(9,Math.floor(a.fs/10))*10===b.lo).length,b.c]),{all:1,onClick:(n,v,p)=>{const b=bins[p.dataIndex];gl('Score '+b.n,'',A.filter(a=>Math.min(9,Math.floor(a.fs/10))*10===b.lo),{cols:fcols,sortK:'fs',sortDir:1})}});
+ simpleBar('f2c',comp.map(c=>[c[0],c[1],hcol(c[1])]),{h:true,lw:160,max:100,onClick:n=>gl('Weak: '+n,'',A.filter(a=>a.fsw.includes(n)),{cols:fcols})});
+ simpleBar('f3c',tops.map(t=>{const as=A.filter(a=>a.top===t),v=as.length?m1(sum(as,a=>a.fs)/as.length):0;return[t,v,hcol(v)]}),{h:true,lw:160,max:100,onClick:t=>gl('Weakest pages — '+t,'',A.filter(a=>a.top===t),{cols:fcols,sortK:'fs',sortDir:1})});
+ regTable('f_ft',[{k:'lib',l:'Site',v:o=>o.lib},{k:'p',l:'Section',v:o=>o.path},{k:'n',l:'Pages',v:o=>o.as.length,num:1},{k:'a',l:'Avg score',v:o=>m1(o.avg),num:1,f:o=>hb(Math.round(o.avg))}],fr,{k:'a',dir:1,limit:30,file:'seo-readiness-sections.csv',click:o=>gl('SEO readiness — '+o.path,o.lib,o.as,{cols:fcols,sortK:'fs',sortDir:1})});
+ regTable('f_tb',fcols,A,{k:'fs',dir:1,limit:30,file:'seo-readiness-pages.csv'})};
+
+/* PAGE: draft ageing */
+const AGB=['<30 days','30–90 days','90–180 days','180–365 days','>1 year','unknown'];
+const agb=a=>a.age==null?AGB[5]:a.age<30?AGB[0]:a.age<90?AGB[1]:a.age<180?AGB[2]:a.age<365?AGB[3]:AGB[4];
+const isStuck=a=>!a.live&&a.age!=null&&a.age>S.th.stuck;
+PAGES.aging=()=>{const A=cur(),tops=topSecs(A.filter(a=>!a.live)),NA=A.filter(a=>!a.live),lim=S.th.stuck,stuck=NA.filter(isStuck),ages=NA.filter(a=>a.age!=null).map(a=>a.age),oldest=ages.length?Math.max(...ages):0,ac=cl('u','lib','p','st','age','mo','ed','seo'),PE=A.filter(a=>a.pend);
+ const sm=grp(NA,a=>a.top),sr=[...sm.entries()].map(([s,as])=>{const ag=as.filter(a=>a.age!=null).map(a=>a.age);return{s,as,med:med(ag),max:ag.length?Math.max(...ag):0,stuck:as.filter(isStuck).length}});
+ $('#view').innerHTML=`<p class="tip">Pages that are not live (${esc([...S.live].join(', '))} count as live), by days since their last update. "Stuck" = more than ${lim} days. Migrations and bulk saves reset update dates, so treat ages as indicative. With "Live pages only" selected in the header this report is empty.</p><div class="kpis">
+ ${kpi('Live',fmtN(A.length-NA.length),P(A.length-NA.length,A.length)+' of pages','g')}
+ ${kp('Not live',fmtN(NA.length),P(NA.length,A.length)+' of pages',NA.length?'o':'g','a1',()=>gl('Pages not live','Oldest first',NA,{cols:ac,sortK:'age',sortDir:-1}),NA.length)}
+ ${kp('Stuck drafts',fmtN(stuck.length),'> '+lim+' days since the last update',stuck.length?'r':'g','a2',()=>gl('Drafts stuck for more than '+lim+' days','Oldest first',stuck,{cols:ac,sortK:'age',sortDir:-1}),stuck.length)}
+ ${kpi('Median draft age',fmtN(med(ages))+' d','since the last update')}
+ ${kpi('Oldest draft',fmtN(oldest)+' d','since the last update')}
+ ${kp('Pending changes on live pages',fmtN(PE.length),'"Published with Changes"',PE.length?'o':'g','a3',()=>gl('Live pages with unpublished changes','',PE,{cols:cl('u','lib','p','st','mo','pu','ed')}),PE.length)}</div>
+ <div class="g2">${card('Age of drafts by top-level section','a1c',360,'Click a segment to list the pages.')}${card('Stuck vs recent drafts, by top-level section','a2c',360)}</div>
+ <div class="card"><h3>By top-level section</h3><p class="mut">Click a row to list the drafts.</p><div id="a_st"></div></div>
+ <div class="card"><h3>Oldest drafts</h3><div id="a_tb"></div></div>`;
+ stackBy('a1c',NA,agb,a=>a.top,{top:8,catSort:(a,b)=>AGB.indexOf(a)-AGB.indexOf(b),on:(b,s,x)=>gl(s+' · '+b,'',NA.filter(a=>agb(a)===b&&(s==='Other'?x.rest.has(a.top):a.top===s)),{cols:ac,sortK:'age',sortDir:-1})});
+ stk('a2c',tops,[{n:'Stuck',c:C.sr,d:tops.map(t=>NA.filter(a=>a.top===t&&isStuck(a)).length)},{n:'Within limit',c:C.lblue,d:tops.map(t=>NA.filter(a=>a.top===t&&!isStuck(a)).length)}],{h:true,on:(t,s)=>gl(s+' — '+t,'',NA.filter(a=>a.top===t&&(s==='Stuck')===isStuck(a)),{cols:ac,sortK:'age',sortDir:-1})});
+ regTable('a_st',[{k:'s',l:'Top-level section',v:o=>o.s},{k:'n',l:'Drafts',v:o=>o.as.length,num:1},{k:'m',l:'Median days',v:o=>o.med,num:1,f:o=>fmtN(o.med)},{k:'x',l:'Oldest (days)',v:o=>o.max,num:1,f:o=>fmtN(o.max)},{k:'k',l:'Stuck',v:o=>o.stuck,num:1}],sr,{k:'n',file:'draft-ageing-by-section.csv',click:o=>gl('Drafts in '+o.s,'',o.as,{cols:ac,sortK:'age',sortDir:-1})});
+ regTable('a_tb',ac,NA,{k:'age',limit:50,file:'draft-ageing-pages.csv'})};
+
+/* PAGE: audit pack & backlog */
+const PN=['Metadata completeness','URL & naming','Indexing (no high risk)','ROT-free','SEO readiness','Drafts (not stuck)','Unique titles (live)'];
+function scoreOf(as){const n=as.length;if(!n)return null;const L=as.filter(a=>a.live);
+ const p=[100*sum(as,a=>a.meta)/n,rate(as,a=>!a.nm.length),100-rate(as,a=>a.rl===3),100-rate(as,aR),sum(as,a=>a.fs)/n,100-rate(as,isStuck),L.length?rate(L,a=>!a.dupT):100];return{p,o:p.reduce((s,x)=>s+x,0)/p.length}}
+const BL=[
+ ['Indexing','P1','Unpublish or move live pages out of non-production sections','High','Low',a=>a.live&&a.badFolder],
+ ['Metadata','P1','Replace placeholder SEO text on live pages','High','Low',a=>a.live&&a.ph],
+ ['Duplicates','P1','Resolve CMS entries that share a slug','High','Low',a=>a.dupSlug],
+ ['Metadata','P1','Write an SEO title and description for indexable pages missing them','High','Medium',a=>a.ixb&&(!uT(a)||!uD(a))],
+ ['Duplicates','P2','Differentiate or canonicalise duplicate SEO titles on indexable pages','Medium','Medium',a=>a.ixb&&a.dupT],
+ ['Metadata','P2','Rewrite auto-truncated descriptions on live pages','Medium','High',a=>a.live&&a.trunc],
+ ['Metadata','P2','Shorten live SEO titles over the length limit','Medium','High',a=>a.live&&a.longT],
+ ['Metadata','P2','Fix joined sentences and stray markup in SEO text','Medium','Low',a=>a.glue||a.markup],
+ ['Workflow','P2','Publish, schedule or delete abandoned drafts','Medium','Medium',a=>a.abandon],
+ ['Workflow','P2','Publish or discard pending changes on live pages','Medium','Low',a=>a.pend],
+ ['Duplicates','P2','Delete or retitle drafts that copy a live page','Medium','Low',a=>a.draftCopy],
+ ['Language','P2','Translate SEO titles copied from the source page','Medium','Medium',a=>a.untr],
+ ['Language','P2','Check pages whose text language differs from the URL','Medium','Low',a=>a.langMis],
+ ['URL','P2','Fix uppercase and underscore URLs (with redirects)','Medium','Medium',a=>a.nm.includes('up')||a.nm.includes('und')],
+ ['URL','P2','Remove trailing-slash twin entries','Medium','Low',a=>a.twin],
+ ['Social','P3','Add a custom teaser image to live pages','Low','High',a=>a.live&&!a.cImg],
+ ['URL','P3','Fix other URL-rule breaks','Low','Medium',a=>a.nm.some(k=>!['up','und','twin'].includes(k))],
+ ['Indexing','P3','Confirm live pages hidden from search are intentional','Low','Low',a=>a.live&&a.noindex],
+ ['Indexing','P3','Set the search-engine option explicitly','Low','Low',a=>!a.hide],
+ ['ROT','P3','Enrich or remove trivial pages','Low','Medium',a=>a.rot.T]];
+function backlog(A){const out=[];
+ for(const [area,p,txt,sev,eff,f] of BL){const rows=A.filter(f);if(!rows.length)continue;const o=topN(cnt(rows,a=>a.ed),1)[0];out.push({area,p,txt,sev,eff,rows,n:rows.length,owner:o[0],on:o[1]})}
+ out.sort((a,b)=>a.p>b.p?1:a.p<b.p?-1:b.n-a.n);out.forEach((x,i)=>x.id='B'+String(i+1).padStart(2,'0'));return out}
+PAGES.audit=()=>{const A=cur(),libs=activeLibs(),all=scoreOf(A),bl=backlog(A),p1=bl.filter(x=>x.p==='P1'),inst=sum(bl,x=>x.n);
+ const SR=[{name:'All pages in view',as:A,s:all},...(libs.length>1?libs.map(l=>({name:l,as:A.filter(a=>a.lib===l)})):[]),...topSecs(A,15).map(t=>({name:(libs.length>1?'Section: ':'')+t,as:A.filter(a=>a.top===t)}))].map(r=>({...r,s:r.s||scoreOf(r.as)})).filter(r=>r.s);
+ const sc=r=>Math.round(r.s.o),T=S.th;
+ $('#view').innerHTML=`<div class="bar noprint"><button class="btn pri" id="pr">Print / save as PDF</button><button class="btn" id="lg">Download issue log (CSV)</button></div>
+ <div class="kpis">
+ ${all?kpi('Overall score',sc(SR[0])+'/100','average of 7 dimensions',kc(sc(SR[0]))):kpi('Overall score','–')}
+ ${kpi('Pages in scope',fmtN(A.length),libs.length+' site'+(libs.length===1?'':'s')+(S.stat?' · '+esc(statLbl()):''))}
+ ${kpi('Backlog items',fmtN(bl.length),fmtN(inst)+' page-level findings in total')}
+ ${kpi('Priority 1 items',fmtN(p1.length),fmtN(sum(p1,x=>x.n))+' findings',p1.length?'r':'g')}</div>
+ <div class="card"><h3>Scorecard</h3><p class="mut">Each dimension is 0–100 (higher is better); the overall score is their average. Metadata completeness = average of the five core fields. URL &amp; naming = share with no URL issue. Indexing = share without a High indexing risk. ROT-free = share that is not redundant, obsolete or trivial. SEO readiness = average score. Drafts = share not stuck as a draft (&gt; ${T.stuck} days). Unique titles = share of live pages whose SEO title is not shared. Rows below the total are ${libs.length>1?'sites, then ':''}the biggest top-level sections. Click a row to list the pages.</p><div id="au_tb"></div></div>
+ ${card('Overall score by top-level section','au1',340)}
+ <div class="card"><h3>Action backlog</h3><p class="mut">Priority: P1 = live exposure or pages search engines cannot describe; P2 = SEO quality, workflow and language; P3 = housekeeping. Effort and severity are rule-of-thumb defaults, not estimates. Owner = the account that last updated most of the affected pages. Click a row to list the pages.</p><div id="au_bl"></div></div>
+ <div class="card"><h3>Scope and sign-off</h3><p class="mut">Sites: ${esc(libs.join(', '))} · Section filter: ${esc(S.scope?[S.scope.lib,...S.scope.parts].join(' › '):'none')} · Status filter: ${esc(S.stat?statLbl():'all')} · As-of date: ${fmtD(S.asOf)} · Stale after ${T.stale} y · Draft abandoned after ${T.stuck} d · SEO title ${T.tMin}–${T.tMax} chars · Description ${T.dMin}–${T.dMax} chars · URL limit ${T.slugMax} chars · Default language: ${esc(LN(T.lang))} · Live statuses: ${esc([...S.live].join(', '))} · Default-image pattern: ${esc(T.img||'none')} · URL pattern: ${esc(T.pat||'none')} · Title pattern: ${esc(T.tpat||'none')}</p>
+ <div class="sign"><div>Prepared by / date</div><div>Reviewed by / date</div><div>Approved by / date</div></div></div>`;
+ regTable('au_tb',[{k:'name',l:'Scope',v:r=>r.name},{k:'n',l:'Pages',v:r=>r.as.length,num:1,f:r=>fmtN(r.as.length)},...PN.map((n,i)=>({k:'p'+i,l:n,v:r=>m1(r.s.p[i]),num:1,f:r=>hb(Math.round(r.s.p[i]))})),{k:'o',l:'Overall',v:r=>r.s.o,num:1,f:r=>hb(sc(r))}],SR,{k:'n',dir:-1,limit:50,file:'scorecard.csv',click:r=>gl(r.name+' — pages','',r.as,{cols:cl('u','lib','p','st','fs','rk','rot','seo')})});
+ simpleBar('au1',SR.filter(r=>r.name!=='All pages in view'&&!libs.includes(r.name)).map(r=>[r.name.replace(/^Section: /,''),sc(r),hcol(sc(r))]),{h:true,lw:160,max:100});
+ const pb={P1:'r',P2:'o',P3:'m'};
+ regTable('au_bl',[{k:'id',l:'ID',v:x=>x.id},{k:'p',l:'Priority',v:x=>x.p,f:x=>`<span class="b ${pb[x.p]}">${x.p}</span>`},{k:'area',l:'Area',v:x=>x.area},{k:'txt',l:'Action',v:x=>x.txt,f:x=>esc(x.txt)},{k:'sev',l:'Severity',v:x=>x.sev},{k:'eff',l:'Effort',v:x=>x.eff},{k:'n',l:'Pages',v:x=>x.n,num:1,f:x=>fmtN(x.n)},{k:'sh',l:'% of view',v:x=>m1(100*x.n/A.length),num:1,f:x=>P(x.n,A.length)},{k:'ow',l:'Owner (most pages)',v:x=>x.owner,f:x=>esc(x.owner)+' ('+fmtN(x.on)+')'}],bl,{k:'p',dir:1,limit:60,file:'action-backlog.csv',click:x=>gl(x.id+' · '+x.txt,x.area+' · '+x.p,x.rows,{cols:cl('u','lib','p','st','ed','rk','rot','seo')})});
+ $('#pr').onclick=()=>window.print();
+ $('#lg').onclick=()=>dl('audit-issue-log.csv',bl.flatMap(x=>x.rows.map(a=>({'Backlog ID':x.id,Priority:x.p,Area:x.area,Issue:x.txt,Site:a.lib,'Page ID':a.id,Slug:a.slug,URL:a.url,Name:a.name,'SEO title':a.sT,Section:a.path,Status:a.status,'Last updated by':a.ed,'Last update':fmtD(a.upd)}))))};
+
+/* events */
+document.addEventListener('click',e=>{const t=e.target,c=s=>t.closest(s);let x;
+ if(c('a[data-ext]'))return;
+ if(x=c('[data-tab]')){S.tab=x.dataset.tab;render();return}
+ if(x=c('[data-lib]')){const n=x.dataset.lib;S.active.has(n)?S.active.delete(n):S.active.add(n);if(S.scope&&!S.active.has(S.scope.lib))S.scope=null;render();return}
+ if(c('[data-scope-clear]')){S.scope=null;render();return}
+ if(x=c('[data-drill]')){const f=DRILLS[x.dataset.drill];f&&f();return}
+ if(x=c('th[data-tb]')){const id=x.dataset.tb,tb=TB[id],k=x.dataset.k;if(tb.k===k)tb.dir*=-1;else{tb.k=k;tb.dir=tb.cols.find(q=>q.k===k).num?-1:1}drawTable(id);return}
+ if(x=c('[data-more]')){e.preventDefault();TB[x.dataset.more].limit+=200;drawTable(x.dataset.more);return}
+ if(x=c('[data-exp]')){e.preventDefault();exportTable(x.dataset.exp);return}
+ if(x=c('tr[data-i]')){const tb=TB[x.dataset.tb];if(tb&&tb.click)tb.click(tb.rows[+x.dataset.i]);return}
+ if(c('[data-dr-close]')){closeDrawer();return}
+ if(c('[data-dr-back]')){if(DR&&DR.prev)openDrawer(DR.prev);return}
+ if(c('[data-dr-explore]')){if(DR&&DR.ex)go({tab:'explorer',...DR.ex});return}
+ if(x=c('[data-mview]')){S.mm.view=x.dataset.mview;render();return}
+ if(x=c('[data-ins]')){go(S._ins[+x.dataset.ins].g);return}
+ if(x=c('[data-insl]')){const f=S._ins[+x.dataset.insl];gl(htmlTxt(f.t),insArea(f.area),f.rows,f.cols?{cols:f.cols}:{});return}
+ if(x=c('[data-insf-sev]')){S.insF.sev=x.dataset.insfSev;render();return}
+ if(c('#ins_dl')){dl('nuggets.csv',S._ins.map(x=>({Severity:SEVN[x.sev],Report:insArea(x.area),Finding:htmlTxt(x.t),Detail:htmlTxt(x.x),Pages:x.rows?x.rows.length:''})));return}
+ if(x=c('[data-crumb]')){e.preventDefault();const k=+x.dataset.crumb;S.scope=k<0?null:{lib:S.scope.lib,parts:S.scope.parts.slice(0,k)};render();return}
+ if(c('[data-miss-clear]')){S.exp.miss='';render();return}
+ if(x=c('[data-rm]')){S.files.splice(+x.dataset.rm,1);drawFiles();return}
+ if(c('#go')){analyse();return}
+});
+document.addEventListener('change',e=>{const t=e.target;
+ if(t.id==='fi'){parseFiles(t.files).then(drawFiles);t.value='';return}
+ if(t.hasAttribute('data-scope')){const l=+t.dataset.scope,v=t.value;S.scope=l===0?(v?{lib:v,parts:[]}:null):{lib:S.scope.lib,parts:S.scope.parts.slice(0,l-1).concat(v?[v]:[])};render();return}
+ if(t.hasAttribute('data-stat')){S.stat=t.value;render();return}
+ if(t.hasAttribute('data-insf-area')){S.insF.area=t.value;render();return}
+ const ex={ex_lib:'lib',ex_flag:'flag',ex_lang:'lang',ex_direct:'direct'};if(ex[t.id]){S.exp[ex[t.id]]=t.value;drawExplorer();return}
+ if(t.id==='fa_i'){S.fa.issue=t.value;drawFolders();return}
+ if(t.id==='st_lib'){S.st.lib=t.value;render();return}
+ if(t.id==='st_metric'){S.st.metric=t.value;render();return}
+ if(t.id==='st_view'){S.st.view=t.value;render()}
+});
+document.addEventListener('input',e=>{const t=e.target;
+ if(t.id==='ex_q'){S.exp.q=t.value;drawExplorer()}else if(t.id==='fa_q'){S.fa.q=t.value;drawFolders()}else if(t.id==='dr_q')drawDrawer();
+ else if(t.dataset.lab!==undefined)S.files[+t.dataset.lab].label=t.value;else if(t.dataset.base!==undefined)S.files[+t.dataset.base].base=t.value});
+['dragover','dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{const d=e.target.closest&&e.target.closest('#drop');if(!d)return;e.preventDefault();d.classList.toggle('hv',ev==='dragover');
+ if(ev==='drop')parseFiles([...e.dataTransfer.files].filter(f=>/\.csv$/i.test(f.name))).then(drawFiles)}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer()});
+render();
+})();
+</script></body></html>
