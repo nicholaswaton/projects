@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frontify permissions: today and proposed</title>
+<style>
+.viz-root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface-1: #fcfcfb; --card: #f5f5f2;
+  --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10); --wash: rgba(11,11,11,0.04);
+  --brand: #0b41cd; --accent-orange: #ed4a0d; --accent-purple: #bc36f0;
+  --series-1: #2a78d6; --before: #eb6834;
+  /* role ordinal ramp (validated --ordinal, steps 1/3/4 of the 4-step set) */
+  --role-viewer: #86b6ef; --role-editor: #1c5cab; --role-owner: #0d366b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface-1: #1a1a19; --card: #232321;
+    --text-primary: #f0efec; --text-secondary: #c3c2b7; --grid: #2c2c2a; --axis: #383835;
+    --border: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.05); --brand: #6da7ec;
+    --series-1: #3987e5; --before: #d95926;
+    --role-viewer: #184f95; --role-editor: #6da7ec; --role-owner: #b7d3f6;
+  }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface-1: #1a1a19; --card: #232321;
+  --text-primary: #f0efec; --text-secondary: #c3c2b7; --grid: #2c2c2a; --axis: #383835;
+  --border: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.05); --brand: #6da7ec;
+  --series-1: #3987e5; --before: #d95926;
+  --role-viewer: #184f95; --role-editor: #6da7ec; --role-owner: #b7d3f6;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+.viz-root { background: var(--page); color: var(--text-primary); min-height: 100vh;
+  font: 14px/1.45 "Roche Sans", system-ui, -apple-system, "Segoe UI", sans-serif; padding: 28px 36px 64px; }
+.wrap { max-width: 1240px; margin: 0 auto; }
+h1 { font-size: 26px; margin: 0 0 4px; font-weight: 600; }
+h2 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+h3 { font-size: 15px; margin: 0 0 6px; font-weight: 600; color: var(--brand); }
+.lead { font-family: "Roche Serif", Georgia, serif; font-weight: 300; color: var(--brand); font-size: 19px; margin: 10px 0 20px; max-width: 900px; }
+.sub { color: var(--text-secondary); margin: 0 0 14px; max-width: 980px; }
+.muted { color: var(--text-muted); }
+header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+select, button { font: inherit; color: var(--text-primary); background: var(--surface-1); border: 1px solid var(--axis); border-radius: 6px; padding: 6px 10px; }
+button { cursor: pointer; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 22px; margin-bottom: 22px; }
+.callout { background: var(--surface-1); border: 1px solid var(--border); border-left: 3px solid var(--accent-orange); border-radius: 6px; padding: 12px 16px; margin-bottom: 22px; color: var(--text-secondary); }
+.callout strong { color: var(--text-primary); }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+.tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.tile .label { color: var(--text-secondary); font-size: 13px; }
+.tile .value { font-size: 30px; font-weight: 600; margin-top: 4px; display: flex; align-items: baseline; gap: 10px; }
+.tile .from { color: var(--text-muted); font-size: 20px; font-weight: 400; text-decoration: line-through; text-decoration-thickness: 1px; }
+.tile .arrow { color: var(--text-muted); font-size: 18px; font-weight: 400; }
+.seg { display: inline-flex; border: 1px solid var(--axis); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 7px 14px; background: var(--surface-1); }
+.seg button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); }
+.controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 12px 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; font-size: 12px; color: var(--text-secondary); }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
+.scroll { overflow-x: auto; }
+table.map { border-collapse: separate; border-spacing: 2px; width: 100%; font-variant-numeric: tabular-nums; }
+.map th { font-weight: 500; font-size: 12px; color: var(--text-secondary); text-align: center; padding: 6px 4px; vertical-align: bottom; }
+.map th.rowh { text-align: left; color: var(--text-primary); font-size: 13px; padding: 8px 10px 8px 0; min-width: 230px; vertical-align: middle; }
+.map th.rowh .meta { display: block; color: var(--text-muted); font-weight: 400; font-size: 12px; }
+.kind { display: inline-block; font-size: 10px; font-weight: 500; padding: 0 6px; border-radius: 8px; margin-left: 6px; vertical-align: 1px; box-shadow: inset 0 0 0 1px var(--axis); color: var(--text-secondary); }
+.map td { height: 46px; min-width: 88px; text-align: center; border-radius: 4px; font-size: 12px; font-weight: 500; position: relative; }
+.map td.none { color: var(--text-muted); background: var(--card); font-weight: 400; }
+.map td.review { color: var(--text-secondary); font-style: italic; font-weight: 400; box-shadow: inset 0 0 0 1px var(--axis); }
+.map td .note { display: block; font-size: 10px; font-weight: 400; opacity: .85; }
+.map td.dec::after { content: "?"; position: absolute; top: 3px; right: 5px; font-size: 10px; font-weight: 600; }
+.map td:focus { outline: 2px solid var(--text-primary); outline-offset: 1px; }
+.chg { font-size: 11px; font-weight: 500; }
+#tooltip { position: fixed; pointer-events: none; background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border); box-shadow: 0 4px 16px rgba(0,0,0,.15); border-radius: 6px; padding: 8px 10px; font-size: 12px; max-width: 340px; display: none; z-index: 10; }
+#tooltip .t { font-weight: 600; margin-bottom: 2px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.fcard { background: var(--card); border-radius: 4px; padding: 14px 16px 14px 18px; position: relative; }
+.fcard::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 4px 0 0 4px; background: var(--brand); }
+.fcard.orange::before { background: var(--accent-orange); }
+.fcard.purple::before { background: var(--accent-purple); }
+.fcard p { margin: 0; color: var(--text-secondary); font-size: 13px; }
+.num { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; background: var(--brand); color: var(--surface-1); margin-bottom: 8px; }
+table.list { border-collapse: collapse; width: 100%; font-size: 13px; }
+.list th { text-align: left; font-weight: 500; color: var(--text-secondary); font-size: 12px; padding: 8px 10px; border-bottom: 1px solid var(--axis); }
+.list td { padding: 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+.list td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pill { display: inline-block; font-size: 11px; font-weight: 500; padding: 1px 8px; border-radius: 10px; white-space: nowrap; }
+.dir { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+.inv { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 6px 18px; }
+.inv .g { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--grid); font-size: 13px; }
+.inv .g span:last-child { color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.invhead { margin: 16px 0 6px; font-size: 13px; font-weight: 600; }
+svg text { font-family: inherit; }
+footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
+@media (max-width: 900px) { .tiles, .grid2, .grid3, .grid4 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="viz-root"><div class="wrap">
+  <header>
+    <div>
+      <h1>Frontify permissions: today and proposed</h1>
+      <p class="sub" id="meta"></p>
+    </div>
+    <select id="theme" aria-label="Theme"><option value="">Theme: system</option><option value="light">Light</option><option value="dark">Dark</option></select>
+  </header>
+  <p class="lead">Every library is set up slightly differently today. One group-based model, applied the same way everywhere, would make access predictable, easier to audit and easier to run.</p>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="callout"><strong>How to read this.</strong> Frontify's API doesn't say which groups were given access to a library, so group access is inferred from group membership and each user's role. Individual users are counted, not named. The API also has no folder permissions, so folder-level exceptions set in the Frontify UI are not shown. Check before changing anything.</div>
+
+  <section class="card">
+    <h2>Access map</h2>
+    <p class="sub">Who has which role in each library. Rows group the people who have the same access today. "Individual" means the role is assigned person by person rather than through a group. Hover over a cell to see the breakdown.</p>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="View">
+        <button data-view="today" aria-pressed="true">Today</button>
+        <button data-view="proposed" aria-pressed="false">Proposed</button>
+        <button data-view="changes" aria-pressed="false">What changes</button>
+      </div>
+      <div class="legend" id="map-legend"></div>
+    </div>
+    <div class="scroll"><table class="map" id="map"></table></div>
+  </section>
+
+  <section class="card">
+    <h2>Owners and Editors per library</h2>
+    <p class="sub">Today the number of Owners ranges widely between libraries. In the proposal, every library has the same Owners (the platform admin group) and the same Editors (the Brand team).</p>
+    <div class="legend" style="margin-bottom:8px"><span><span class="sw" style="background:var(--before);border-radius:50%"></span>Today</span><span><span class="sw" style="background:var(--series-1);border-radius:50%"></span>Proposed</span></div>
+    <div class="grid2"><div id="dumb-owner"></div><div id="dumb-editor"></div></div>
+  </section>
+
+  <section class="card">
+    <h2>What we found</h2>
+    <p class="sub">Six observations from the data on the 10 libraries.</p>
+    <div class="grid3" id="findings"></div>
+  </section>
+
+  <section class="card">
+    <h2>Proposed model: 5 groups, 3 roles, the same in every library</h2>
+    <p class="sub">Access is only ever given to groups. Changing someone's access means changing their group membership, never the library settings.</p>
+    <table class="list" id="model"></table>
+    <div class="grid3" style="margin-top:18px">
+      <div class="fcard"><h3>Groups, not people</h3><p>No individual role assignments. Joining or leaving a group is the only way to change access, which keeps it auditable.</p></div>
+      <div class="fcard orange"><h3>Same model everywhere</h3><p>All 10 libraries share one set-up, so a new library is configured in minutes and nobody has to check library by library.</p></div>
+      <div class="fcard purple"><h3>Least privilege</h3><p>Owner (library settings and members) only for platform admins. Editor for people who manage assets. Viewer for everyone else, including integrations.</p></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>What changes</h2>
+    <p class="sub">Steps to get from today's set-up to the proposed model, and how many people each one affects.</p>
+    <table class="list" id="changes"></table>
+  </section>
+
+  <section class="card">
+      <h2>Folders</h2>
+      <p class="sub">Folders inherit their library's access. The API has no folder permissions, so check the larger trees in the Frontify UI for folder-level exceptions. Proposed rule: no folder-level exceptions; content that needs a different audience gets its own library.</p>
+      <div id="folders" style="max-width:640px"></div>
+    </section>
+  <section class="card">
+      <h2>Groups</h2>
+      <p class="sub" id="inv-sub"></p>
+      <div id="inventory"></div>
+    </section>
+  <section class="card">
+    <h2>Decisions needed</h2>
+    <p class="sub">These need a sign-off before the migration starts.</p>
+    <div class="grid4" id="decisions"></div>
+  </section>
+
+  <footer id="footer"></footer>
+  <div id="tooltip" role="tooltip"></div>
+</div></div>
+
+<script>
+const D = {"libraries": [{"id": "eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==", "name": "1. Photos library - FINAL", "short": "Photos", "type": "MediaLibrary", "collaborators": 93198, "owners_today": 14, "editors_today": 3, "owners_proposed": 11, "editors_proposed": 17}, {"id": "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==", "name": "2. Video library - FINAL", "short": "Videos", "type": "MediaLibrary", "collaborators": 93198, "owners_today": 31, "editors_today": 1, "owners_proposed": 11, "editors_proposed": 17}, {"id": "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==", "name": "3. Logos library - FINAL", "short": "Logos", "type": "LogoLibrary", "collaborators": 93197, "owners_today": 30, "editors_today": 1, "owners_proposed": 11, "editors_proposed": 17}, {"id": "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==", "name": "4. Icons library - FINAL", "short": "Icons", "type": "IconLibrary", "collaborators": 93199, "owners_today": 11, "editors_today": 21, "owners_proposed": 11, "editors_proposed": 17}, {"id": "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9", "name": "5. Animated icons library - FINAL", "short": "Animated icons", "type": "MediaLibrary", "collaborators": 93198, "owners_today": 13, "editors_today": 2, "owners_proposed": 11, "editors_proposed": 17}, {"id": "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9", "name": "6. Illustration library - FINAL", "short": "Illustrations", "type": "MediaLibrary", "collaborators": 93200, "owners_today": 13, "editors_today": 2, "owners_proposed": 11, "editors_proposed": 17}, {"id": "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9", "name": "7. Stock assets library - FINAL", "short": "Stock assets", "type": "MediaLibrary", "collaborators": 93200, "owners_today": 30, "editors_today": 2, "owners_proposed": 11, "editors_proposed": 17}, {"id": "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==", "name": "8. Animated Illustration library - FINAL", "short": "Animated illustrations", "type": "MediaLibrary", "collaborators": 93200, "owners_today": 12, "editors_today": 0, "owners_proposed": 11, "editors_proposed": 17}, {"id": "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==", "name": "9. Patients & HCPs Proof of Concept", "short": "Patients & HCPs", "type": "MediaLibrary", "collaborators": 93200, "owners_today": 8, "editors_today": 3, "owners_proposed": 11, "editors_proposed": 17}, {"id": "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==", "name": "File Library", "short": "File Library", "type": "MediaLibrary", "collaborators": 87001, "owners_today": 6, "editors_today": 23, "owners_proposed": 11, "editors_proposed": 17}], "rows": [{"key": "employees", "label": "Roche employees", "kind": "Group", "members": 86979, "today_note": "Group grant", "proposed_group": "Roche employees", "proposed": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": "Viewer", "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": "Viewer", "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": "Viewer", "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": "Viewer"}, "current": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 86964, "None": 0}}, "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 86964, "None": 0}}, "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 86964, "None": 0}}, "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 86964, "None": 0}}, "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 86964, "None": 0}}, "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 86964, "None": 0}}, "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 86964, "None": 0}}, "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 86964, "None": 0}}, "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 86964, "None": 0}}, "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 86964, "None": 0}}}, "changes": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": "same", "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": "same", "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": "same", "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": "same"}}, {"key": "externals", "label": "Externals & agencies", "kind": "Group", "members": 6218, "today_note": "Group grant", "proposed_group": "Externals & agencies", "proposed": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": "Viewer", "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": "Viewer", "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": "Viewer", "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": "Viewer"}, "decision": {"eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": "Decide: open File Library to externals, or keep it as the one documented exception"}, "current": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 6201, "None": 0}}, "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 6201, "None": 0}}, "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 6201, "None": 0}}, "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 6201, "None": 0}}, "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 6201, "None": 0}}, "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 6201, "None": 0}}, "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 6201, "None": 0}}, "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 6201, "None": 0}}, "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 6201, "None": 0}}, "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": {"role": null, "mix": {"Owner": 0, "Editor": 0, "Viewer": 2, "None": 6199}}}, "changes": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": "same", "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": "same", "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": "same", "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": "up"}}, {"key": "admins", "label": "Platform admins", "kind": "Individual", "members": 11, "today_note": "Assigned one by one", "proposed_group": "Digital Experience (platform admin)", "proposed": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": "Owner", "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": "Owner", "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": "Owner", "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": "Owner", "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": "Owner", "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": "Owner", "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": "Owner", "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": "Owner", "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": "Owner", "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": "Owner"}, "current": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": {"role": "Owner", "mix": {"Owner": 11, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": {"role": "Owner", "mix": {"Owner": 11, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": {"role": "Owner", "mix": {"Owner": 11, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": {"role": "Owner", "mix": {"Owner": 9, "Editor": 2, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Owner", "mix": {"Owner": 11, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Owner", "mix": {"Owner": 11, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Owner", "mix": {"Owner": 11, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": {"role": "Owner", "mix": {"Owner": 10, "Editor": 0, "Viewer": 1, "None": 0}}, "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": {"role": "Owner", "mix": {"Owner": 8, "Editor": 1, "Viewer": 2, "None": 0}}, "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": {"role": "Owner", "mix": {"Owner": 6, "Editor": 5, "Viewer": 0, "None": 0}}}, "changes": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": "align", "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": "same", "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": "same", "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": "same", "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": "align", "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": "align", "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": "align"}}, {"key": "brand", "label": "Brand team", "kind": "Group", "members": 17, "today_note": "Group grant, role differs per library", "proposed_group": "Brand team", "proposed": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": "Editor", "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": "Editor", "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": "Editor", "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": "Editor", "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": "Editor", "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": "Editor", "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": "Editor", "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": "Editor", "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": "Editor", "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": "Editor"}, "decision": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": "Decide: Editor everywhere (proposed) vs. Owner", "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": "Decide: Editor everywhere (proposed) vs. Owner", "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": "Decide: Editor everywhere (proposed) vs. Owner", "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": "Decide: Editor everywhere (proposed) vs. Owner", "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": "Decide: Editor everywhere (proposed) vs. Owner", "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": "Decide: Editor everywhere (proposed) vs. Owner", "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": "Decide: Editor everywhere (proposed) vs. Owner", "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": "Decide: Editor everywhere (proposed) vs. Owner"}, "note_members": "25 members in total; 8 are also platform admins", "current": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 1, "Viewer": 16, "None": 0}}, "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": {"role": "Owner", "mix": {"Owner": 17, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": {"role": "Owner", "mix": {"Owner": 17, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": {"role": "Editor", "mix": {"Owner": 0, "Editor": 17, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 17, "None": 0}}, "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 17, "None": 0}}, "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Owner", "mix": {"Owner": 17, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 17, "None": 0}}, "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 2, "Viewer": 15, "None": 0}}, "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": {"role": "Editor", "mix": {"Owner": 0, "Editor": 17, "Viewer": 0, "None": 0}}}, "changes": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": "up", "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": "down", "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": "down", "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": "up", "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": "up", "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": "down", "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": "up", "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": "up", "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": "same"}}, {"key": "integrations", "label": "Integration accounts", "kind": "Group", "members": 2, "today_note": "Via “Virtual Events Hub DEV”", "proposed_group": "Digital Experience (Integrations)", "proposed": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": "Viewer", "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": "Viewer", "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": "Viewer", "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": "Viewer", "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": "Viewer"}, "decision": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": "Confirm: Viewer is enough unless the integration uploads (then Editor)", "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": "Confirm: Viewer is enough unless the integration uploads (then Editor)", "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": "Confirm: Viewer is enough unless the integration uploads (then Editor)", "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": "Confirm: Viewer is enough unless the integration uploads (then Editor)", "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": "Confirm: Viewer is enough unless the integration uploads (then Editor)", "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": "Confirm: Viewer is enough unless the integration uploads (then Editor)", "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": "Confirm: Viewer is enough unless the integration uploads (then Editor)", "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": "Confirm: Viewer is enough unless the integration uploads (then Editor)"}, "current": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": {"role": "Owner", "mix": {"Owner": 2, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": {"role": "Owner", "mix": {"Owner": 2, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": {"role": "Owner", "mix": {"Owner": 2, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": {"role": "Owner", "mix": {"Owner": 2, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Owner", "mix": {"Owner": 2, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Owner", "mix": {"Owner": 2, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Owner", "mix": {"Owner": 2, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": {"role": "Owner", "mix": {"Owner": 2, "Editor": 0, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 2, "None": 0}}, "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 2, "None": 0}}}, "changes": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": "down", "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": "down", "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": "down", "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": "down", "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": "down", "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": "down", "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": "down", "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": "down", "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": "same", "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": "same"}}, {"key": "others", "label": "Other individual accounts", "kind": "Individual", "members": 3, "today_note": "Assigned one by one / single-person groups", "proposed_group": "Brand team or baseline Viewer", "proposed": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": "Review", "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": "Review", "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": "Review", "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": "Review", "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": "Review", "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": "Review", "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": "Review", "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": "Review", "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": "Review", "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": "Review"}, "current": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": {"role": "Editor", "mix": {"Owner": 1, "Editor": 2, "Viewer": 0, "None": 0}}, "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": {"role": "Owner", "mix": {"Owner": 1, "Editor": 1, "Viewer": 1, "None": 0}}, "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": {"role": "Editor", "mix": {"Owner": 0, "Editor": 1, "Viewer": 1, "None": 1}}, "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": {"role": "Editor", "mix": {"Owner": 0, "Editor": 2, "Viewer": 1, "None": 0}}, "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Editor", "mix": {"Owner": 0, "Editor": 2, "Viewer": 0, "None": 1}}, "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Editor", "mix": {"Owner": 0, "Editor": 2, "Viewer": 0, "None": 1}}, "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": {"role": "Editor", "mix": {"Owner": 0, "Editor": 2, "Viewer": 0, "None": 1}}, "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 2, "None": 1}}, "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": {"role": "Viewer", "mix": {"Owner": 0, "Editor": 0, "Viewer": 2, "None": 1}}, "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": {"role": "Editor", "mix": {"Owner": 0, "Editor": 1, "Viewer": 1, "None": 1}}}, "changes": {"eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==": "review", "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==": "review", "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==": "review", "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==": "review", "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9": "review", "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9": "review", "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9": "review", "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==": "review", "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==": "review", "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==": "review"}}], "metrics": {"assignments": [150, 50], "individual": [102, 0], "configurations": [9, 1], "groups_in_use": [9, 5], "owners_range": [[6, 31], [11, 11]], "unique_owners": [31, 11], "elevated_users": 33, "collaborators": 93200, "groups_total": 37, "folders_total": 370}, "inventory": [{"name": "Roche employees", "members": 86979, "class": "Kept in proposed model", "roles": ["Viewer"], "libraries": 10}, {"name": "DIA (CXSD)", "members": 76125, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "Chugai Group employees", "members": 71156, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "Externals & agencies", "members": 6218, "class": "Kept in proposed model", "roles": ["Viewer"], "libraries": 9}, {"name": "IC portal reviewers (temp access for 24 July survey)", "members": 158, "class": "No effect here — temporary / test", "roles": [], "libraries": 0}, {"name": "Brand team", "members": 25, "class": "Kept in proposed model", "roles": ["Owner", "Editor"], "libraries": 5}, {"name": "RSS designers (enable template downloads)", "members": 20, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "navify brand team", "members": 11, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "Dia UX team", "members": 9, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "UCP reviewers (review WIP campaign hub)", "members": 8, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "Axelios editors (access to libraries & guideline)", "members": 7, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "International Awareness Days editors", "members": 7, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "Brand certified agencies", "members": 6, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "Access management / support", "members": 6, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "Roche Packaging Artwork Management Team", "members": 5, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "AI Brand Assistant Test group", "members": 5, "class": "No effect here — temporary / test", "roles": [], "libraries": 0}, {"name": "Trafik Studio ", "members": 5, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "CoaguChek editors (access to libraries & guideline)", "members": 5, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "Open Molecular Solutions editors (access to libraries & guideline)", "members": 5, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "Agency hklmgroup ", "members": 4, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "Roche Diagnostics x Frontify (temp)", "members": 4, "class": "No effect here — temporary / test", "roles": [], "libraries": 0}, {"name": "CustomBiotech editors (access to libraries & guideline)", "members": 4, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "cobas editors (access to libraries & guideline)", "members": 4, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "VENTANA editors (access to libraries & guideline)", "members": 4, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "DIA Sustainable Packaging (access to libraries & guideline)", "members": 4, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "Virtual Events Hub DEV", "members": 2, "class": "Grants access today — fold into model", "roles": ["Owner"], "libraries": 8}, {"name": "navify designers (enable template downloads)", "members": 2, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "UCP editors (upload templates, edit guidelines)", "members": 2, "class": "Grants access today — fold into model", "roles": ["Editor"], "libraries": 1}, {"name": "Brand team support (agency access for uploads)", "members": 2, "class": "Grants access today — fold into model", "roles": ["Editor"], "libraries": 1}, {"name": "Frontify Access Request Test", "members": 1, "class": "Grants access today — fold into model", "roles": ["Editor"], "libraries": 4}, {"name": "Signage templates", "members": 1, "class": "Grants access today — fold into model", "roles": ["Editor"], "libraries": 4}, {"name": "Storyblock Editors", "members": 1, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "Digital Experience (Integrations)", "members": 1, "class": "Kept in proposed model", "roles": [], "libraries": 0}, {"name": "Roche 3D product images editors", "members": 1, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "Digital Experience (platform admin)", "members": 1, "class": "Kept in proposed model", "roles": ["Owner"], "libraries": 6}, {"name": "VENTANA designers (enable template download)", "members": 1, "class": "No effect here", "roles": [], "libraries": 0}, {"name": "MCP-GCS (AI agent access only)", "members": 0, "class": "Empty", "roles": [], "libraries": 0}], "changes": [{"area": "Platform admins", "change": "Add the 11 admins to “Digital Experience (platform admin)” (Owner on all libraries); remove their individual assignments.", "people": 11, "effect": "No change in day-to-day access; Owner on File Library where some are Editor today.", "direction": "align"}, {"area": "Brand team", "change": "Brand team becomes Editor on every library.", "people": 17, "effect": "Gains Editor on Photos, Animated icons, Illustrations, Animated illustrations, Patients & HCPs; loses Owner on Videos, Logos, Stock assets.", "direction": "mixed"}, {"area": "Integration accounts", "change": "Move the 2 “Virtual Events Hub DEV” accounts to “Digital Experience (Integrations)” with Viewer (Editor only if they upload).", "people": 2, "effect": "Owner removed on 8 libraries.", "direction": "down"}, {"area": "Duplicate brand groups", "change": "Remove the library grants of “UCP editors” and “Brand team support” — their members are already in the Brand team.", "people": 2, "effect": "Covered by the Brand team grant.", "direction": "align"}, {"area": "Single-person groups", "change": "Remove the grants of “Signage templates” and “Frontify Access Request Test” (one person, Editor on 4 libraries).", "people": 1, "effect": "Add to the Brand team if they still need to edit.", "direction": "review"}, {"area": "Other individual accounts", "change": "Review the remaining individual assignments; add to the Brand team or leave at Viewer.", "people": 3, "effect": "No individually assigned roles left.", "direction": "review"}, {"area": "File Library", "change": "Decide whether “Externals & agencies” get Viewer like on the other 9 libraries.", "people": 6199, "effect": "Either one consistent baseline, or one documented exception.", "direction": "decision"}, {"area": "Group hygiene", "change": "Review the 27 groups that add nothing on these libraries (incl. temporary, test and empty groups) with their owners.", "people": null, "effect": "Fewer groups to reason about; check first whether they are used for guidelines or other libraries.", "direction": "review"}], "findings": [{"title": "No two libraries are set up the same", "body": "9 different permission set-ups across 10 libraries, for only 33 people with more than Viewer rights."}, {"title": "Owners are assigned one by one", "body": "11 platform admins are Owner on almost every library through individual assignments. The “Digital Experience (platform admin)” group has 1 member."}, {"title": "The Brand team’s role changes per library", "body": "Owner on Videos, Logos, Stock assets; Editor on Icons, File Library; only Viewer on the other 5."}, {"title": "Integrations have Owner rights", "body": "The 2 “Virtual Events Hub DEV” accounts are Owner on 8 libraries — more than an integration normally needs."}, {"title": "One library has a different audience", "body": "File Library is the only library not open to “Externals & agencies” (6,199 people)."}, {"title": "Most groups do nothing here", "body": "27 of 37 groups add nothing beyond what employees and externals already get on these libraries — several are temporary, test or empty."}], "decisions": [{"title": "Brand team: Editor everywhere?", "body": "Proposed: Editor on all libraries. Today they are Owner on 3 and only Viewer on 5. Owner stays with the platform admins."}, {"title": "Externals on File Library?", "body": "Open it like the other 9 libraries, or keep it closed and document it as the single exception."}, {"title": "What do integrations need?", "body": "Confirm with the integration owner whether read access (Viewer) is enough, or whether it uploads (Editor)."}, {"title": "Who approves access?", "body": "Agree an owner for group membership requests, so access is changed in groups — never on individual users."}], "folders": [{"id": "eyJpZGVudGlmaWVyIjozMCwidHlwZSI6InByb2plY3QifQ==", "short": "Photos", "count": 217, "depth": 7}, {"id": "eyJpZGVudGlmaWVyIjo1NSwidHlwZSI6InByb2plY3QifQ==", "short": "Videos", "count": 60, "depth": 3}, {"id": "eyJpZGVudGlmaWVyIjo0MSwidHlwZSI6InByb2plY3QifQ==", "short": "Logos", "count": 0, "depth": 0}, {"id": "eyJpZGVudGlmaWVyIjozNSwidHlwZSI6InByb2plY3QifQ==", "short": "Icons", "count": 6, "depth": 2}, {"id": "eyJpZGVudGlmaWVyIjoyOTA3LCJ0eXBlIjoicHJvamVjdCJ9", "short": "Animated icons", "count": 8, "depth": 2}, {"id": "eyJpZGVudGlmaWVyIjozODA5LCJ0eXBlIjoicHJvamVjdCJ9", "short": "Illustrations", "count": 0, "depth": 0}, {"id": "eyJpZGVudGlmaWVyIjozODg5LCJ0eXBlIjoicHJvamVjdCJ9", "short": "Stock assets", "count": 16, "depth": 2}, {"id": "eyJpZGVudGlmaWVyIjoxMDYxNSwidHlwZSI6InByb2plY3QifQ==", "short": "Animated illustrations", "count": 0, "depth": 0}, {"id": "eyJpZGVudGlmaWVyIjoxNTI1MSwidHlwZSI6InByb2plY3QifQ==", "short": "Patients & HCPs", "count": 12, "depth": 1}, {"id": "eyJpZGVudGlmaWVyIjo1MCwidHlwZSI6InByb2plY3QifQ==", "short": "File Library", "count": 51, "depth": 4}], "min_coverage": 0.95, "generated_at": "2026-10-20T03:54:42+00:00"};
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (n) => n.toLocaleString("en-US");
+const css = (v) => getComputedStyle($(".viz-root")).getPropertyValue(v).trim();
+function inkOn(hex) {
+  const c = hex.replace("#", "").match(/../g).map((x) => { const v = parseInt(x, 16) / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2] > 0.3 ? "#0b0b0b" : "#ffffff";
+}
+const ROLEVAR = { Owner: "--role-owner", Editor: "--role-editor", Viewer: "--role-viewer" };
+const RANK = { Owner: 3, Editor: 2, Viewer: 1 };
+const libs = D.libraries, M = D.metrics;
+
+$("#meta").textContent = `${libs.length} brand asset libraries · ${fmt(M.collaborators)} people with access · ${M.groups_total} user groups · generated ${new Date(D.generated_at).toLocaleDateString()}`;
+
+// ---------- tiles
+const tile = (label, from, to) => `<div class="tile"><div class="label">${label}</div><div class="value"><span class="from">${from}</span><span class="arrow">→</span><span>${to}</span></div></div>`;
+$("#tiles").innerHTML =
+  tile("Access assignments to maintain", fmt(M.assignments[0]), fmt(M.assignments[1])) +
+  tile("Individual role assignments", fmt(M.individual[0]), fmt(M.individual[1])) +
+  tile("Different library set-ups", M.configurations[0], M.configurations[1]) +
+  tile("Owners per library", `${M.owners_range[0][0]}–${M.owners_range[0][1]}`, M.owners_range[1][0]);
+
+// ---------- tooltip
+const tip = $("#tooltip");
+function showTip(el, x, y) {
+  tip.innerHTML = el.dataset.tip; tip.style.display = "block";
+  const r = tip.getBoundingClientRect();
+  tip.style.left = Math.min(x + 14, innerWidth - r.width - 8) + "px";
+  tip.style.top = Math.min(y + 14, innerHeight - r.height - 8) + "px";
+}
+document.addEventListener("mousemove", (e) => { const el = e.target.closest("[data-tip]"); el ? showTip(el, e.clientX, e.clientY) : (tip.style.display = "none"); });
+document.addEventListener("focusin", (e) => { const el = e.target.closest("[data-tip]"); if (el) { const r = el.getBoundingClientRect(); showTip(el, r.right, r.top); } });
+document.addEventListener("focusout", () => (tip.style.display = "none"));
+
+// ---------- access map
+let view = "today";
+document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => {
+  view = b.dataset.view;
+  document.querySelectorAll(".seg button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  renderMap();
+}));
+const mixText = (mix, n) => ["Owner", "Editor", "Viewer", "None"].filter((r) => mix[r]).map((r) => `${fmt(mix[r])} ${r === "None" ? "no access" : r}`).join(" · ");
+function roleCell(role, extraNote, tipHtml, cls = "") {
+  if (!role) return `<td class="none ${cls}" tabindex="0" data-tip="${esc(tipHtml)}">—${extraNote ? `<span class="note">${extraNote}</span>` : ""}</td>`;
+  if (role === "Review") return `<td class="review ${cls}" tabindex="0" data-tip="${esc(tipHtml)}">Review</td>`;
+  const bg = css(ROLEVAR[role]);
+  return `<td class="${cls}" tabindex="0" data-tip="${esc(tipHtml)}" style="background:${bg};color:${inkOn(bg)}">${role}${extraNote ? `<span class="note">${extraNote}</span>` : ""}</td>`;
+}
+function renderLegend() {
+  const roles = ["Viewer", "Editor", "Owner"].map((r) => `<span><span class="sw" style="background:var(${ROLEVAR[r]})"></span>${r}</span>`).join("");
+  const extra = view === "today" ? `<span class="muted">Small print: people in the row whose role differs</span>`
+    : view === "proposed" ? `<span><b>?</b> decision needed</span><span><span class="sw" style="box-shadow:inset 0 0 0 1px var(--axis)"></span>Review case by case</span>`
+    : `<span>▲ more access</span><span>▼ less access</span><span>= unchanged</span><span>=* unchanged for most; a few individuals brought into line</span>`;
+  $("#map-legend").innerHTML = roles + extra;
+}
+function renderMap() {
+  renderLegend();
+  const head = `<thead><tr><th></th>${libs.map((l) => `<th>${esc(l.short)}</th>`).join("")}</tr></thead>`;
+  const body = D.rows.map((r) => {
+    const label = view === "today" ? r.label : r.proposed_group;
+    const meta = view === "today" ? `${fmt(r.members)} ${r.members === 1 ? "person" : "people"} · ${esc(r.today_note)}${["employees", "externals"].includes(r.key) ? " (people with more access are in the rows below)" : ""}` : `${fmt(r.members)} ${r.members === 1 ? "person" : "people"} today: ${esc(r.label)}`;
+    const kind = view === "today" ? r.kind : (r.key === "others" ? "Review" : "Group");
+    const cells = libs.map((l) => {
+      const c = r.current[l.id], p = r.proposed[l.id], ch = r.changes[l.id], dec = r.decision && r.decision[l.id];
+      const base = `<div class="t">${esc(label)} · ${esc(l.short)}</div>`;
+      const todayTxt = `Today: ${mixText(c.mix, r.members)}`;
+      if (view === "today") {
+        const others = ["Owner", "Editor", "Viewer"].filter((x) => x !== c.role && c.mix[x]).map((x) => `+${c.mix[x]} ${x}`).join(" ");
+        return roleCell(c.role, others, base + todayTxt);
+      }
+      const propTxt = `Proposed: ${p === "Review" ? "review: add to the Brand team or keep Viewer" : p}${dec ? `<br><b>${esc(dec)}</b>` : ""}`;
+      if (view === "proposed") return roleCell(p, "", base + propTxt + "<br>" + todayTxt, dec ? "dec" : "");
+      const sym = { up: "▲", down: "▼", same: "=", align: "=", review: "?" }[ch];
+      const from = c.role || "No access";
+      const txt = ch === "same" || ch === "align" ? (ch === "align" ? `= ${p}*` : `= ${p}`) : ch === "review" ? "Review" : `${sym} ${p}`;
+      const tipHtml = base + `${esc(from)} → ${esc(p)}${ch === "align" ? "<br>Role unchanged for most; some individuals are brought into line" : ""}<br>${todayTxt}${dec ? `<br><b>${esc(dec)}</b>` : ""}`;
+      if (ch === "same" || ch === "align") return `<td class="none" tabindex="0" data-tip="${esc(tipHtml)}"><span class="chg">${txt}</span></td>`;
+      if (ch === "review") return `<td class="review" tabindex="0" data-tip="${esc(tipHtml)}">Review</td>`;
+      const bg = css(ROLEVAR[p]);
+      return `<td tabindex="0" data-tip="${esc(tipHtml)}" style="background:${bg};color:${inkOn(bg)}"><span class="chg">${txt}</span><span class="note">from ${esc(from)}</span></td>`;
+    }).join("");
+    return `<tr><th class="rowh">${esc(label)}<span class="kind">${kind}</span><span class="meta">${meta}</span></th>${cells}</tr>`;
+  }).join("");
+  $("#map").innerHTML = head + `<tbody>${body}</tbody>`;
+}
+
+// ---------- dumbbells (one per role, shared scale)
+function dumbbell(el, title, key) {
+  const W = 560, rowH = 26, top = 30, left = 130, right = 40, H = top + libs.length * rowH + 28;
+  const max = Math.max(...libs.flatMap((l) => [l[key + "_today"], l[key + "_proposed"]]));
+  const xMax = Math.ceil(max / 5) * 5, x = (v) => left + (v / xMax) * (W - left - right);
+  const ticks = Array.from({ length: xMax / 5 + 1 }, (_, i) => i * 5);
+  const before = css("--before"), after = css("--series-1"), surf = css("--surface-1"), grid = css("--grid"), muted = css("--text-muted"), sec = css("--text-secondary");
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(title)}: today versus proposed per library">`;
+  s += `<text x="0" y="14" font-size="14" font-weight="600" fill="${css("--text-primary")}">${esc(title)}</text>`;
+  ticks.forEach((t) => { s += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 6}" y2="${H - 22}" stroke="${grid}"/><text x="${x(t)}" y="${H - 6}" font-size="11" fill="${muted}" text-anchor="middle">${t}</text>`; });
+  libs.forEach((l, i) => {
+    const y = top + i * rowH + rowH / 2, a = l[key + "_today"], b = l[key + "_proposed"];
+    const t = esc(`<div class="t">${esc(l.short)}</div>${title}: ${a} today → ${b} proposed`);
+    s += `<g data-tip="${t}" tabindex="0"><rect x="0" y="${y - rowH / 2}" width="${W}" height="${rowH}" fill="transparent"/>`;
+    s += `<text x="${left - 10}" y="${y + 4}" font-size="12" fill="${sec}" text-anchor="end">${esc(l.short)}</text>`;
+    s += `<line x1="${x(a)}" x2="${x(b)}" y1="${y}" y2="${y}" stroke="${muted}" stroke-width="2" stroke-linecap="round"/>`;
+    s += `<circle cx="${x(a)}" cy="${y}" r="5" fill="${before}" stroke="${surf}" stroke-width="2"/><circle cx="${x(b)}" cy="${y}" r="5" fill="${after}" stroke="${surf}" stroke-width="2"/>`;
+    // value label beside the "today" dot, away from the connecting line; above the dot when it would hit the axis labels
+    const tight = a < b && x(a) - 22 < left;
+    s += tight ? `<text x="${x(a)}" y="${y - 8}" font-size="11" fill="${sec}" text-anchor="middle">${a}</text></g>`
+      : `<text x="${x(a) + (a >= b ? 10 : -10)}" y="${y + 4}" font-size="11" fill="${sec}" text-anchor="${a >= b ? "start" : "end"}">${a}</text></g>`;
+  });
+  el.innerHTML = s + `</svg>`;
+}
+
+// ---------- folders (single series bars)
+function folderBars() {
+  const W = 560, rowH = 26, left = 130, right = 90, top = 6, H = top + D.folders.length * rowH + 4;
+  const max = Math.max(...D.folders.map((f) => f.count)), x = (v) => (v / max) * (W - left - right);
+  const bar = css("--series-1"), sec = css("--text-secondary"), muted = css("--text-muted");
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Folders per library">`;
+  D.folders.forEach((f, i) => {
+    const y = top + i * rowH, w = Math.max(f.count ? 2 : 0, x(f.count));
+    s += `<g data-tip="${esc(`<div class="t">${esc(f.short)}</div>${f.count} folders · ${f.depth} levels deep`)}" tabindex="0"><rect x="0" y="${y}" width="${W}" height="${rowH}" fill="transparent"/>`;
+    s += `<text x="${left - 10}" y="${y + 17}" font-size="12" fill="${sec}" text-anchor="end">${esc(f.short)}</text>`;
+    if (f.count) s += `<path d="M${left},${y + 5} h${Math.max(0, w - 4)} a4,4 0 0 1 4,4 v8 a4,4 0 0 1 -4,4 h-${Math.max(0, w - 4)} z" fill="${bar}"/>`;
+    s += `<text x="${left + w + 6}" y="${y + 17}" font-size="11" fill="${f.count ? sec : muted}">${f.count ? `${f.count} · ${f.depth} levels` : "no folders"}</text></g>`;
+  });
+  $("#folders").innerHTML = s + `</svg>`;
+}
+
+// ---------- static sections
+$("#findings").innerHTML = D.findings.map((f, i) => `<div class="fcard ${["", "orange", "purple"][i % 3]}"><h3>${esc(f.title)}</h3><p>${esc(f.body)}</p></div>`).join("");
+const modelRows = D.rows.filter((r) => r.key !== "others");
+const tierName = { employees: "Everyone at Roche", externals: "Partners & agencies", admins: "Library admins", brand: "Asset managers", integrations: "Integrations" };
+const tierRole = (r) => r.proposed[libs[0].id];
+$("#model").innerHTML = `<thead><tr><th>Tier</th><th>Group</th><th>Role</th><th>Libraries</th><th>Who is in it today</th></tr></thead><tbody>` +
+  [...modelRows].sort((a, b) => RANK[tierRole(b)] - RANK[tierRole(a)]).map((r) => {
+    const role = tierRole(r), bg = css(ROLEVAR[role]);
+    return `<tr><td><b>${tierName[r.key]}</b></td><td>${esc(r.proposed_group)}</td><td><span class="pill" style="background:${bg};color:${inkOn(bg)}">${role}</span></td><td>All ${libs.length}</td><td class="muted">${fmt(r.members)} · ${esc(r.label)}${r.note_members ? ` (${esc(r.note_members)})` : ""}</td></tr>`;
+  }).join("") + `</tbody>`;
+const DIR = { up: "▲ more access", down: "▼ less access", mixed: "▲▼ both", align: "= same access", review: "? review", decision: "? decision" };
+$("#changes").innerHTML = `<thead><tr><th>#</th><th>Area</th><th>Change</th><th>Effect</th><th style="text-align:right">People</th><th>Direction</th></tr></thead><tbody>` +
+  D.changes.map((c, i) => `<tr><td class="muted">${i + 1}</td><td><b>${esc(c.area)}</b></td><td>${esc(c.change)}</td><td class="muted">${esc(c.effect)}</td><td class="n">${c.people == null ? "—" : fmt(c.people)}</td><td class="dir">${DIR[c.direction]}</td></tr>`).join("") + `</tbody>`;
+const classes = [...new Set(D.inventory.map((g) => g.class))];
+$("#inv-sub").textContent = `All ${D.inventory.length} account groups, grouped by what they do on these ${libs.length} libraries. Groups with no effect here may still be used for guidelines or other libraries, so check with their owners first.`;
+$("#inventory").innerHTML = classes.map((c) => {
+  const gs = D.inventory.filter((g) => g.class === c);
+  return `<div class="invhead">${esc(c)} <span class="muted" style="font-weight:400">(${gs.length})</span></div><div class="inv">${gs.map((g) => `<div class="g"><span>${esc(g.name)}</span><span>${fmt(g.members)}${g.roles.length ? " · " + g.roles.join("/") : ""}</span></div>`).join("")}</div>`;
+}).join("");
+$("#decisions").innerHTML = D.decisions.map((d, i) => `<div class="fcard"><div class="num">${i + 1}</div><h3>${esc(d.title)}</h3><p>${esc(d.body)}</p></div>`).join("");
+$("#footer").textContent = `Source: Frontify GraphQL API export (library collaborators with roles, account user groups and their members, folder trees). A group counts as granted a role when at least ${Math.round(D.min_coverage * 100)}% of its members hold it. Counts only: no individual users are named.`;
+
+// ---------- render + theme
+function renderAll() { renderMap(); dumbbell($("#dumb-owner"), "Owners", "owners"); dumbbell($("#dumb-editor"), "Editors", "editors"); folderBars(); }
+$("#theme").addEventListener("input", (e) => { e.target.value ? document.documentElement.dataset.theme = e.target.value : delete document.documentElement.dataset.theme; renderAll(); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderAll);
+renderAll();
+</script>
+</body>
+</html>
