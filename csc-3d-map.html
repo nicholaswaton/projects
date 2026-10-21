@@ -1,0 +1,1105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CSC Basin 3D Map</title>
+<meta name="description" content="Interactive 3D map of the South Sailing Basin and Berkeley Marina for Cal Sailing Club members.">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+<style>
+  :root {
+    --navy: #0c2a47;
+    --navy-2: #163d63;
+    --gold: #e8a317;
+    --ink: #13202e;
+    --muted: #5a6a7b;
+    --line: #d9e0e7;
+    --panel: rgba(255, 255, 255, 0.95);
+    --panel-solid: #ffffff;
+    --chip: #eef2f6;
+    --chip-on: #0c2a47;
+    --chip-on-ink: #ffffff;
+    --warn-bg: #fff6e0;
+    --warn-ink: #7a5300;
+    --shadow: 0 6px 24px rgba(12, 42, 71, 0.18);
+    --radius: 12px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #e6edf4;
+      --muted: #9fb0c2;
+      --line: #2b3d50;
+      --panel: rgba(16, 27, 40, 0.94);
+      --panel-solid: #101b28;
+      --chip: #1d2e42;
+      --chip-on: #e8a317;
+      --chip-on-ink: #10161f;
+      --warn-bg: #3a2c0b;
+      --warn-ink: #f3d48a;
+      --shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0c2a47; color: var(--ink); font-family: var(--font); }
+  #map { position: absolute; inset: 0; }
+
+  /* Header */
+  .bar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 3;
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px; padding-top: max(10px, env(safe-area-inset-top));
+    background: linear-gradient(180deg, rgba(12,42,71,0.92), rgba(12,42,71,0.70));
+    color: #fff; pointer-events: none;
+  }
+  .bar > * { pointer-events: auto; }
+  .bar .mark {
+    width: 30px; height: 30px; border-radius: 8px; background: var(--gold);
+    display: grid; place-items: center; flex: none;
+  }
+  .bar .mark svg { width: 20px; height: 20px; }
+  .bar h1 { margin: 0; font-size: 16px; font-weight: 650; letter-spacing: 0.01em; line-height: 1.15; }
+  .bar .sub { font-size: 12px; opacity: 0.8; }
+  .bar .spacer { flex: 1; }
+  .bar .nfn {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+    border: 1px solid rgba(255,255,255,0.45); border-radius: 999px; padding: 3px 9px; white-space: nowrap;
+  }
+  .bar.embed { display: none; }
+
+  /* Panel */
+  #panel {
+    position: absolute; z-index: 4; top: 64px; left: 12px; width: 320px;
+    max-height: calc(100% - 96px); display: flex; flex-direction: column;
+    background: var(--panel); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
+  }
+  body.embed #panel { top: 12px; max-height: calc(100% - 44px); }
+  #panel.collapsed .body, #panel.collapsed .tabs { display: none; }
+  .phead { display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 8px 14px; border-bottom: 1px solid var(--line); }
+  .phead strong { font-size: 13px; }
+  .iconbtn {
+    border: 0; background: transparent; color: var(--ink); cursor: pointer; padding: 6px 8px; border-radius: 8px; font: inherit; font-size: 13px;
+  }
+  .iconbtn:hover { background: var(--chip); }
+  .tabs { display: flex; gap: 2px; padding: 6px 6px 0; border-bottom: 1px solid var(--line); }
+  .tab {
+    flex: 1; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600;
+    padding: 8px 4px 9px; cursor: pointer; border-bottom: 2px solid transparent;
+  }
+  .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--gold); }
+  .body { overflow-y: auto; padding: 12px 14px 14px; }
+  .pane[hidden] { display: none; }
+  .pane h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 14px 0 8px; font-weight: 700; }
+  .pane h3:first-child { margin-top: 2px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .chip {
+    border: 1px solid transparent; background: var(--chip); color: var(--ink); font: inherit; font-size: 13px;
+    padding: 8px 10px; border-radius: 9px; cursor: pointer; text-align: left; line-height: 1.2;
+  }
+  .chip:hover { border-color: var(--line); }
+  .chip[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-ink); }
+  .chip small { display: block; font-size: 11px; opacity: 0.75; margin-top: 2px; }
+  .seg { display: flex; background: var(--chip); border-radius: 9px; padding: 3px; gap: 3px; }
+  .seg button {
+    flex: 1; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 13px; padding: 7px 4px; border-radius: 7px; cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { background: var(--panel-solid); box-shadow: 0 1px 3px rgba(0,0,0,0.15); font-weight: 600; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 14px; }
+  .row label { flex: 1; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  .row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--gold); }
+  .row .val { font-family: var(--mono); font-size: 12px; color: var(--muted); min-width: 44px; text-align: right; }
+  .slider { width: 100%; accent-color: var(--gold); }
+  .indent { padding-left: 24px; }
+  .note { font-size: 12px; color: var(--muted); line-height: 1.45; margin: 6px 0 0; }
+  .warn { font-size: 12px; line-height: 1.45; background: var(--warn-bg); color: var(--warn-ink); border-radius: 8px; padding: 8px 10px; margin-top: 10px; }
+  .places { list-style: none; margin: 0; padding: 0; }
+  .places li button {
+    width: 100%; display: flex; align-items: center; gap: 10px; border: 0; background: transparent; color: var(--ink);
+    font: inherit; font-size: 14px; padding: 7px 6px; border-radius: 8px; cursor: pointer; text-align: left;
+  }
+  .places li button:hover { background: var(--chip); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .places .st { margin-left: auto; font-size: 11px; color: var(--muted); }
+  .kv { font-family: var(--mono); font-size: 13px; }
+  .sources { font-size: 12px; color: var(--muted); line-height: 1.5; padding-left: 16px; margin: 4px 0 0; }
+  .sources a { color: inherit; }
+  .btnrow { display: flex; gap: 6px; flex-wrap: wrap; }
+  .btn {
+    border: 0; background: var(--navy); color: #fff; font: inherit; font-size: 13px; font-weight: 600;
+    padding: 8px 12px; border-radius: 9px; cursor: pointer;
+  }
+  .btn.ghost { background: var(--chip); color: var(--ink); }
+  .btn[aria-pressed="true"] { background: var(--gold); color: #10161f; }
+
+  /* Compass dial for wind */
+  .dial { display: flex; align-items: center; gap: 14px; }
+  .dial svg { width: 74px; height: 74px; flex: none; }
+  .dial .big { font-size: 22px; font-weight: 700; font-family: var(--mono); }
+
+  /* Readouts */
+  #readout {
+    position: absolute; z-index: 3; left: 12px; bottom: 12px; padding: 5px 9px; border-radius: 8px;
+    background: var(--panel); color: var(--ink); font-family: var(--mono); font-size: 12px; box-shadow: var(--shadow);
+    pointer-events: none; white-space: nowrap;
+  }
+  #measurebox {
+    position: absolute; z-index: 3; left: 50%; transform: translateX(-50%); top: 64px;
+    background: var(--panel); color: var(--ink); border-radius: 10px; box-shadow: var(--shadow);
+    padding: 8px 12px; font-size: 13px; display: none; align-items: center; gap: 12px;
+  }
+  body.embed #measurebox { top: 12px; }
+  #measurebox.on { display: flex; }
+  #toast {
+    position: absolute; z-index: 6; left: 50%; bottom: 44px; transform: translateX(-50%);
+    background: var(--navy); color: #fff; padding: 8px 14px; border-radius: 9px; font-size: 13px;
+    opacity: 0; transition: opacity .25s; pointer-events: none; max-width: 90vw; text-align: center;
+  }
+  #toast.on { opacity: 1; }
+  #fatal {
+    position: absolute; inset: 0; display: none; place-items: center; z-index: 10; background: #0c2a47; color: #fff; padding: 24px; text-align: center;
+  }
+  #fatal.on { display: grid; }
+
+  /* Markers */
+  .pin { cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+  .pin .head {
+    width: 26px; height: 26px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+    border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.35); display: grid; place-items: center;
+  }
+  .pin .head span { transform: rotate(45deg); color: #fff; font: 700 11px/1 var(--font); }
+  .pin.approx .head { border-style: dashed; }
+  .pin .lbl {
+    margin-top: 4px; background: rgba(12,42,71,0.88); color: #fff; font: 600 11px/1.2 var(--font);
+    padding: 3px 6px; border-radius: 5px; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis;
+  }
+  .pin.approx .lbl::after { content: " ≈"; opacity: 0.8; }
+  .hide-pin-labels .pin .lbl { display: none; }
+  .wlabel {
+    cursor: pointer; font: italic 600 15px/1 Georgia, "Times New Roman", serif; letter-spacing: 0.12em; text-transform: uppercase;
+    color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.85), 0 0 8px rgba(12,42,71,0.6); white-space: nowrap;
+  }
+  .mode-chart .wlabel { color: #1d4f7c; text-shadow: 0 0 3px #fff, 0 0 6px #fff; }
+  .edit .pin, .edit .wlabel { cursor: grab; }
+
+  /* Popup */
+  .maplibregl-popup-content { border-radius: 12px; padding: 12px 14px; font-family: var(--font); color: #13202e; box-shadow: var(--shadow); }
+  .pop h4 { margin: 0 0 2px; font-size: 15px; }
+  .pop .cat { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #5a6a7b; font-weight: 700; }
+  .pop p { margin: 8px 0 0; font-size: 13px; line-height: 1.45; }
+  .pop .pos { margin-top: 8px; font-size: 11px; padding: 4px 7px; border-radius: 6px; display: inline-block; }
+  .pos.approx { background: #fff1d6; color: #7a5300; }
+  .pos.osm { background: #e3f1ff; color: #12487a; }
+  .pos.club { background: #e2f6ea; color: #17663b; }
+  .pop .src { margin-top: 8px; font-size: 11px; color: #5a6a7b; }
+  .pop .src a { color: inherit; }
+  .pop .coords { margin-top: 6px; font-family: var(--mono); font-size: 11px; color: #5a6a7b; }
+
+  /* Edit panel */
+  #editpanel {
+    position: absolute; z-index: 4; top: 64px; right: 12px; width: 340px; max-height: calc(100% - 96px); overflow-y: auto;
+    background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 14px; display: none;
+  }
+  .edit #editpanel { display: block; }
+  #editpanel h2 { font-size: 14px; margin: 0 0 4px; }
+  #editpanel label.f { display: block; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  #editpanel input[type="text"], #editpanel select, #editpanel textarea {
+    width: 100%; font: inherit; font-size: 13px; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--panel-solid); color: var(--ink); margin-top: 3px;
+  }
+  #editpanel textarea { min-height: 70px; resize: vertical; }
+  #exportbox { font-family: var(--mono); font-size: 11px; min-height: 140px; }
+
+  .maplibregl-ctrl-top-right { top: 56px; }
+  body.embed .maplibregl-ctrl-top-right { top: 0; }
+
+  /* Phone layout: panel becomes a bottom sheet */
+  @media (max-width: 640px) {
+    .bar .sub, .bar .nfn { display: none; }
+    #panel { left: 0; right: 0; bottom: 0; top: auto; width: auto; max-height: 52vh; border-radius: 14px 14px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+    body.embed #panel { top: auto; max-height: 52vh; }
+    #readout { bottom: auto; top: 56px; left: 8px; font-size: 11px; }
+    body.embed #readout { top: 8px; }
+    #editpanel { left: 8px; right: 8px; width: auto; top: 56px; max-height: 40vh; }
+    #measurebox { top: auto; bottom: calc(52vh + 10px); }
+    #panel.collapsed ~ #measurebox { bottom: 64px; }
+  }
+</style>
+</head>
+<body>
+<div id="map" role="application" aria-label="3D map of the South Sailing Basin and Berkeley Marina"></div>
+
+<header class="bar" id="bar">
+  <div class="mark" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="#0c2a47"><path d="M11 2v15H4.5L11 2zm2 3.5c3.8 2.6 6.2 6.6 6.5 11.5H13V5.5zM3 19h18c-.9 1.8-2.8 3-5 3H8c-2.2 0-4.1-1.2-5-3z"/></svg>
+  </div>
+  <div>
+    <h1>South Sailing Basin &amp; Berkeley Marina</h1>
+    <div class="sub">Cal Sailing Club · interactive 3D map</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="nfn" title="This map is for orientation and teaching. Use official NOAA charts for navigation.">Not for navigation</div>
+</header>
+
+<aside id="panel" aria-label="Map controls">
+  <div class="phead">
+    <strong>Map controls</strong>
+    <button class="iconbtn" id="collapse" aria-expanded="true" aria-controls="panelbody">Hide</button>
+  </div>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-pane="views">Views</button>
+    <button class="tab" role="tab" aria-selected="false" data-pane="layers">Layers</button>
+    <button class="tab" role="tab" aria-selected="false" data-pane="wind">Wind</button>
+    <button class="tab" role="tab" aria-selected="false" data-pane="tools">Tools</button>
+  </div>
+  <div class="body" id="panelbody">
+    <section class="pane" data-pane="views">
+      <h3>Fly to</h3>
+      <div class="grid2" id="viewbtns"></div>
+      <div class="btnrow" style="margin-top:8px">
+        <button class="btn ghost" id="orbit" aria-pressed="false">Orbit the basin</button>
+      </div>
+      <h3>Places</h3>
+      <ul class="places" id="placelist"></ul>
+      <p class="note">Pins marked ≈ are approximate and haven't been checked by the club yet.</p>
+    </section>
+
+    <section class="pane" data-pane="layers" hidden>
+      <h3>Base map</h3>
+      <div class="seg" id="basemap">
+        <button data-base="sat" aria-pressed="true">Satellite</button>
+        <button data-base="chart" aria-pressed="false">Map</button>
+        <button data-base="usgs" aria-pressed="false">USGS aerial</button>
+      </div>
+      <h3>Overlays</h3>
+      <div class="row"><label><input type="checkbox" id="opt-noaa"> NOAA chart (depths, aids)</label></div>
+      <div class="row indent"><input type="range" class="slider" id="opt-noaa-op" min="0.2" max="1" step="0.05" value="0.85" aria-label="NOAA chart opacity"><span class="val" id="noaa-op-val">85%</span></div>
+      <div class="indent" style="margin-top:4px">
+        <div class="seg" id="depthunits">
+          <button data-units="ft" aria-pressed="true">Depths in feet</button>
+          <button data-units="m" aria-pressed="false">Meters</button>
+        </div>
+      </div>
+      <p class="note indent" id="noaa-status">Official NOAA electronic chart (ENC) data. Depths are relative to MLLW.</p>
+      <div class="row"><label><input type="checkbox" id="opt-terrain" checked> 3D terrain</label></div>
+      <div class="row indent"><input type="range" class="slider" id="opt-exag" min="1" max="4" step="0.25" value="1.5" aria-label="Terrain exaggeration"><span class="val" id="exag-val">1.5×</span></div>
+      <div class="row"><label><input type="checkbox" id="opt-buildings" checked> 3D buildings</label></div>
+      <div class="row"><label><input type="checkbox" id="opt-docks" checked> Highlight docks &amp; piers</label></div>
+      <div class="row"><label><input type="checkbox" id="opt-pins" checked> Club places</label></div>
+      <div class="row"><label><input type="checkbox" id="opt-labels" checked> Map labels</label></div>
+    </section>
+
+    <section class="pane" data-pane="wind" hidden>
+      <h3>Wind (set by hand)</h3>
+      <div class="dial">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="2"/>
+          <text x="50" y="14" text-anchor="middle" font-size="11" fill="currentColor" font-weight="700">N</text>
+          <text x="90" y="54" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">E</text>
+          <text x="50" y="94" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">S</text>
+          <text x="10" y="54" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">W</text>
+          <g id="dialarrow"><path d="M50 18 L57 34 L52 34 L52 80 L48 80 L48 34 L43 34 Z" fill="#e8a317" transform="rotate(180 50 50)"/></g>
+        </svg>
+        <div>
+          <div class="big" id="wind-read">240° · 15 kt</div>
+          <div class="note" id="wind-name">From the WSW</div>
+        </div>
+      </div>
+      <div class="row"><span style="flex:1">Direction (from)</span><span class="val" id="dir-val">240°</span></div>
+      <input type="range" class="slider" id="wind-dir" min="0" max="355" step="5" value="240" aria-label="Wind direction in degrees true">
+      <div class="row"><span style="flex:1">Speed</span><span class="val" id="spd-val">15 kt</span></div>
+      <input type="range" class="slider" id="wind-spd" min="0" max="35" step="1" value="15" aria-label="Wind speed in knots">
+      <div class="row"><label><input type="checkbox" id="opt-wind" checked> Show wind arrows</label></div>
+      <div class="btnrow"><button class="btn ghost" id="wind-typical">Typical summer afternoon</button></div>
+      <div class="btnrow" style="margin-top:6px"><button class="btn ghost" id="wind-live" hidden>Use live forecast</button></div>
+      <p class="note" id="wind-note">These arrows show the wind you set, not a live reading. They're for teaching points of sail and planning legs across the basin.</p>
+    </section>
+
+    <section class="pane" data-pane="tools" hidden>
+      <h3>Measure</h3>
+      <div class="btnrow">
+        <button class="btn" id="measure" aria-pressed="false">Measure distance</button>
+        <button class="btn ghost" id="measure-clear">Clear</button>
+      </div>
+      <p class="note">Tap points on the water. Distance shows in nautical miles and meters, with the true bearing of the last leg.</p>
+      <h3>Share</h3>
+      <div class="btnrow"><button class="btn ghost" id="copylink">Copy link to this view</button></div>
+      <h3>About this map</h3>
+      <p class="note">For orientation and teaching only. Depths, shoals and silting change. Check the tide and the official NOAA chart before you sail.</p>
+      <ul class="sources">
+        <li>Buildings, docks, roads: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a> via <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a></li>
+        <li>Satellite: Esri World Imagery. Aerial: USGS National Map (public domain)</li>
+        <li>Terrain: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a></li>
+        <li>Chart: NOAA Office of Coast Survey, ENC Online</li>
+      </ul>
+    </section>
+  </div>
+</aside>
+
+<div id="measurebox" role="status"><span id="measure-read">Tap the map to start</span><button class="iconbtn" id="measure-done">Done</button></div>
+<div id="readout" aria-hidden="true">—</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<aside id="editpanel" aria-label="Edit places">
+  <h2>Edit places</h2>
+  <p class="note" style="margin-top:0">Drag any pin onto the right spot on the satellite image. A moved pin counts as checked by the club. Edits stay in this browser until you copy the JSON into the page's <code>PLACES</code> list.</p>
+  <div class="btnrow" style="margin-top:8px">
+    <button class="btn" id="addplace" aria-pressed="false">Add a place</button>
+    <button class="btn ghost" id="resetedits">Discard my edits</button>
+  </div>
+  <div id="editform" hidden>
+    <label class="f">Name <input type="text" id="ef-name"></label>
+    <label class="f">Type <select id="ef-cat"></select></label>
+    <label class="f">Description <textarea id="ef-desc"></textarea></label>
+    <div class="row"><label><input type="checkbox" id="ef-verified"> Position checked by the club</label></div>
+    <div class="btnrow"><button class="btn ghost" id="ef-delete">Remove this place</button></div>
+  </div>
+  <label class="f" style="margin-top:14px">Places JSON (paste into <code>PLACES</code>)</label>
+  <textarea id="exportbox" readonly></textarea>
+  <div class="btnrow" style="margin-top:6px"><button class="btn" id="copyjson">Copy JSON</button></div>
+</aside>
+
+<div id="fatal"><div><h2 style="margin-top:0">The 3D map couldn't start</h2><p id="fatal-msg">Your browser may not support WebGL, or the map library didn't load.</p></div></div>
+<noscript><div style="position:absolute;inset:0;display:grid;place-items:center;background:#0c2a47;color:#fff;padding:24px;text-align:center">This map needs JavaScript.</div></noscript>
+
+<script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* =========================================================================
+     CONFIG — the parts the club is most likely to edit
+     ========================================================================= */
+
+  // Places shown as pins. Positions are [longitude, latitude].
+  // verified: true  -> the club has checked the position against imagery.
+  // osm: a name pattern. If OpenStreetMap has a point with that name nearby,
+  //      the pin moves to it at load time (unless verified is true).
+  // Anything else is shown as approximate (≈) until someone checks it.
+  // Use ?edit in the page URL to drag pins and export a corrected list.
+  var PLACES = [
+    { id: 'csc', name: 'Cal Sailing Club', cat: 'club', lngLat: [-122.31330, 37.86360], verified: false,
+      osm: 'cal sailing club',
+      desc: 'Nonprofit, volunteer-run sailing and windsurfing club, 124 University Ave. Lessons and open houses launch into the South Sailing Basin.',
+      src: [{ t: 'Islands.com profile', u: 'https://www.islands.com/1843168/one-bay-areas-hidden-recreational-gems-volunteer-run-charming-cal-sailing-club-windsurfing-school-california' }] },
+    { id: 'docks', name: 'Small-boat docks & hoists', cat: 'dock', lngLat: [-122.31280, 37.86300], verified: false,
+      osm: '',
+      desc: 'Public docks and two hoists for small-boat launching. The larger hoist takes boats up to about 3,500 lb. Controlling depth at MLLW is listed as only about 2 ft, and the club has raised silting in the basin with the City.',
+      src: [{ t: 'Berkeley Waterfront: Marina Services (undated)', u: 'https://people.well.com/user/pk/waterfront/MarinaServices.html' },
+            { t: 'CSC letter on the Waterfront Specific Plan, Nov 2023', u: 'https://berkeleyca.gov/sites/default/files/legislative-body-meeting-attachments/CSCletter-WSP-11-6-2023.pdf' }] },
+    { id: 'caladv', name: 'Cal Adventures', cat: 'facility', lngLat: [-122.31210, 37.86370], verified: false,
+      osm: 'cal adventures|aquatic center',
+      desc: 'UC Berkeley\'s aquatic center, right next to the club. Kayak, SUP and windsurf classes and rentals.',
+      src: [{ t: 'SF Bay Water Trail: Berkeley Marina small boat launch', u: 'https://sfbaywatertrail.org/trailhead/berkeley-marina-small-boat-launch/' }] },
+    { id: 'jdock', name: 'J-Dock (club keelboats)', cat: 'dock', lngLat: [-122.31310, 37.86520], verified: false,
+      osm: '',
+      desc: 'The club\'s keelboats berth at the outer end of J-Dock. In 2024 the City Council kept these berths (including slips 360–368) for sailing instruction.',
+      src: [{ t: 'Latitude 38, Oct 2024', u: 'https://www.latitude38.com/lectronic/cal-sailing-club-remain-j-dock/' },
+            { t: 'City Council resolution, May 2024', u: 'https://berkeleyca.gov/sites/default/files/legislative-body-meeting-attachments/5-14-24%20TT%20J-Dock%20Resolution%20APRIL%20REVISED-2.pdf' }] },
+    { id: 'shorebird', name: 'Shorebird Park & Nature Center', cat: 'landmark', lngLat: [-122.31580, 37.86215], verified: false,
+      osm: 'shorebird',
+      desc: 'Park on the west side of the launch area, with restrooms and a gravel beach sometimes used to launch kayaks.',
+      src: [{ t: 'USGS GNIS point for Shorebird Park', u: 'https://www.topoquest.com/place-detail.php?id=1676042' }] },
+    { id: 'byc', name: 'Berkeley Yacht Club', cat: 'landmark', lngLat: [-122.31820, 37.86660], verified: false,
+      osm: 'berkeley yacht club',
+      desc: 'On the south side of the marina entrance channel. Has a 120 ft guest dock but no permanent berths.',
+      src: [{ t: 'Berkeley Waterfront: Marina Services (undated)', u: 'https://people.well.com/user/pk/waterfront/MarinaServices.html' }] },
+    { id: 'entrance', name: 'Harbor entrance', cat: 'hazard', lngLat: [-122.31960, 37.86600], verified: false,
+      osm: '',
+      desc: 'Modern Sailing\'s Berkeley guide says the south entrance is the deepest of three, and that most groundings happen just inside the breakwater when boats cut the turn too close. Wind often shifts suddenly off the yacht club building.',
+      src: [{ t: 'Modern Sailing, Berkeley Orientation Guide', u: 'https://www.modernsailing.com/sites/default/files/Berkeley%20Orientation%20Guide.pdf' }] },
+    { id: 'pier', name: 'Berkeley Pier', cat: 'hazard', lngLat: [-122.32000, 37.86360], verified: false,
+      osm: '',
+      desc: 'Closed to the public since 2015. The old pier runs about 2.5 miles out with a gap near the standing end. Give it a wide berth, and stay well off in a northerly, when it becomes a lee shore.',
+      src: [{ t: 'Wikipedia: Berkeley Pier', u: 'https://en.wikipedia.org/wiki/Berkeley_Pier' },
+            { t: 'Modern Sailing, Berkeley Orientation Guide', u: 'https://www.modernsailing.com/sites/default/files/Berkeley%20Orientation%20Guide.pdf' }] },
+    { id: 'ashby', name: 'Ashby Shoal', cat: 'hazard', lngLat: [-122.30450, 37.85200], verified: false,
+      osm: 'ashby shoal',
+      desc: 'Muddy sandbar between Berkeley and Emeryville that only shows above water at extreme low tides. The traditional spot for the club\'s shoal breakfast.',
+      src: [{ t: 'Berkeley Dragons cruise photos, 2003', u: 'https://people.well.com/user/pk/berkeleydragons/Photos/2003-cruises/index.html' }] },
+    { id: 'lbl-ssb', name: 'South Sailing Basin', cat: 'label', lngLat: [-122.31200, 37.86000], verified: false, osm: '',
+      desc: 'Sheltered, in the lee of the prevailing westerly, with flatter water and slightly lighter wind than outside. Shallow, with mudflats exposed at low tide.',
+      src: [{ t: 'Latitude 38, Aug 2017', u: 'https://www.latitude38.com/lectronic/2017/08/07' },
+            { t: 'Berkeley Waterfront photo gallery', u: 'https://people.well.com/user/pk/waterfront/EastshoreStatePark/photos/gallery.html' }] },
+    { id: 'lbl-marina', name: 'Berkeley Marina', cat: 'label', lngLat: [-122.31400, 37.86800], verified: false, osm: '',
+      desc: 'Harbor protected by two breakwaters. About 1,000 berths.', src: [{ t: 'Berkeley Waterfront: Marina Services (undated)', u: 'https://people.well.com/user/pk/waterfront/MarinaServices.html' }] }
+  ];
+
+  var CATS = {
+    club:     { label: 'Club',          color: '#e8a317', glyph: 'C' },
+    dock:     { label: 'Docks & launch', color: '#1f6fd1', glyph: 'D' },
+    facility: { label: 'Facility',      color: '#17907a', glyph: 'F' },
+    landmark: { label: 'Landmark',      color: '#5a6a7b', glyph: 'L' },
+    hazard:   { label: 'Caution',       color: '#d23c2f', glyph: '!' },
+    label:    { label: 'Water area',    color: '#0c2a47', glyph: '' }
+  };
+
+  // Camera presets: center [lng, lat], zoom, pitch (0 = top-down), bearing (0 = north up)
+  var VIEWS = [
+    { id: 'overview', name: 'Overview', hint: 'Marina and basin', center: [-122.3135, 37.8628], zoom: 15.4, pitch: 58, bearing: -18 },
+    { id: 'basin', name: 'South Basin', hint: 'Looking north to the docks', center: [-122.3122, 37.8598], zoom: 16.3, pitch: 62, bearing: 8 },
+    { id: 'docks', name: 'Club docks', hint: 'Hoists and launch', center: [-122.3130, 37.8632], zoom: 17.8, pitch: 66, bearing: 195 },
+    { id: 'harbor', name: 'Harbor', hint: 'J-Dock and entrance', center: [-122.3160, 37.8668], zoom: 16.4, pitch: 60, bearing: -70 },
+    { id: 'gate', name: 'Golden Gate view', hint: 'From the basin, WSW', center: [-122.3300, 37.8560], zoom: 13.9, pitch: 80, bearing: 252 },
+    { id: 'top', name: 'Top-down', hint: 'Chart-style, north up', center: [-122.3130, 37.8625], zoom: 15.6, pitch: 0, bearing: 0 }
+  ];
+
+  // Area covered by the wind arrows [west, south, east, north]
+  var WIND_BOX = [-122.3230, 37.8520, -122.3040, 37.8665];
+
+  // Optional live wind. Point url at a JSON feed and write parse() to return
+  // { dirDeg, speedKt, gustKt, time } for the current hour. Left off until the
+  // feed format is confirmed. Example: 'https://status.cal-sailing.org/rrfs_forecast.json'
+  var WIND_FEED = { url: null, parse: null };
+
+  var SOURCES = {
+    style: 'https://tiles.openfreemap.org/styles/liberty',
+    esri: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    usgs: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}',
+    dem: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
+    // NOAA ENC Online (Maritime Chart Service). Layers 0, 8, 9 and 12 (chart info,
+    // data quality, low accuracy, overscale hatching) are left out on purpose.
+    noaa: function (units) {
+      var dp = { ECDISParameters: { version: '10.9', DynamicParameters: { Parameter: [
+        { name: 'DisplayDepthUnits', value: units === 'm' ? 1 : 2 } ] } } };
+      return 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer/export' +
+        '?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=512,512&dpi=192&format=png&transparent=true' +
+        '&layers=show:1,2,3,4,5,6,7,10,11&display_params=' + encodeURIComponent(JSON.stringify(dp)) + '&f=image';
+    }
+  };
+
+  /* =========================================================================
+     Setup
+     ========================================================================= */
+
+  var params = new URLSearchParams(location.search);
+  var EDIT = params.has('edit');
+  var EMBED = params.has('embed') || window.self !== window.top;
+  var STORE_KEY = 'csc3d-place-edits-v1';
+
+  if (EMBED) { document.body.classList.add('embed'); document.getElementById('bar').classList.add('embed'); }
+  if (EDIT) document.body.classList.add('edit');
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function toast(msg, ms) {
+    var t = $('toast'); t.textContent = msg; t.classList.add('on');
+    clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove('on'); }, ms || 2600);
+  }
+  function fatal(msg) { $('fatal-msg').textContent = msg; $('fatal').classList.add('on'); }
+  function storeGet() { try { var v = localStorage.getItem(STORE_KEY); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function storeSet(v) { try { localStorage.setItem(STORE_KEY, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
+  function storeClear() { try { localStorage.removeItem(STORE_KEY); } catch (e) { /* ignore */ } }
+
+  function ddm(v, pos, neg) {
+    var a = Math.abs(v), d = Math.floor(a), m = (a - d) * 60;
+    return d + '°' + (m < 10 ? '0' : '') + m.toFixed(3) + '′' + (v >= 0 ? pos : neg);
+  }
+  function fmtLngLat(ll) { return ddm(ll[1], 'N', 'S') + '  ' + ddm(ll[0], 'E', 'W'); }
+  var R = 6371008.8;
+  function rad(d) { return d * Math.PI / 180; }
+  function dist(a, b) {
+    var dLat = rad(b[1] - a[1]), dLon = rad(b[0] - a[0]);
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(rad(a[1])) * Math.cos(rad(b[1])) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  function bearing(a, b) {
+    var y = Math.sin(rad(b[0] - a[0])) * Math.cos(rad(b[1]));
+    var x = Math.cos(rad(a[1])) * Math.sin(rad(b[1])) - Math.sin(rad(a[1])) * Math.cos(rad(b[1])) * Math.cos(rad(b[0] - a[0]));
+    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+  }
+  var COMPASS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  function compass(d) { return COMPASS[Math.round(d / 22.5) % 16]; }
+
+  // Working copy of places (edit mode applies this browser's saved edits)
+  var places = PLACES.map(function (p) {
+    return Object.assign({}, p, { lngLat: p.lngLat.slice(), status: p.verified ? 'club' : 'approx' });
+  });
+  if (EDIT) {
+    var saved = storeGet();
+    if (saved && Array.isArray(saved)) {
+      places = saved.map(function (p) { return Object.assign({}, p, { status: p.verified ? 'club' : 'approx' }); });
+    }
+  }
+
+  if (typeof maplibregl === 'undefined') {
+    fatal('The map library didn\'t load. Check your connection and reload the page.');
+    return;
+  }
+
+  var map;
+  try {
+    map = new maplibregl.Map({
+      container: 'map',
+      style: SOURCES.style,
+      center: VIEWS[0].center, zoom: VIEWS[0].zoom, pitch: VIEWS[0].pitch, bearing: VIEWS[0].bearing,
+      maxPitch: 85,
+      hash: 'view',
+      attributionControl: { compact: true }
+    });
+  } catch (e) {
+    fatal('Your browser couldn\'t start the 3D map (WebGL may be turned off). ' + (e && e.message ? e.message : ''));
+    return;
+  }
+
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+  map.addControl(new maplibregl.FullscreenControl(), 'top-right');
+  map.addControl(new maplibregl.ScaleControl({ unit: 'nautical', maxWidth: 120 }), 'bottom-right');
+
+  var state = {
+    base: 'sat', terrain: true, exag: 1.5, buildings: true, docks: true, pins: true, labels: true,
+    noaa: false, noaaOp: 0.85, depthUnits: 'ft', wind: true, windDir: 240, windSpd: 15,
+    measuring: false, measurePts: [], adding: false, selected: null, orbit: false
+  };
+
+  var baseLayers = { symbols: [], extrusions: [], other: [] };
+  var markers = {};
+  var styleReady = false;
+
+  /* =========================================================================
+     Map layers
+     ========================================================================= */
+
+  function firstSymbolId() {
+    var ls = map.getStyle().layers;
+    for (var i = 0; i < ls.length; i++) if (ls[i].type === 'symbol') return ls[i].id;
+    return undefined;
+  }
+
+  function makeArrowImages() {
+    var buckets = [
+      { id: 'wa-0', color: '#7cc4ff' }, { id: 'wa-1', color: '#4fd18b' }, { id: 'wa-2', color: '#ffd23f' },
+      { id: 'wa-3', color: '#ff9a3c' }, { id: 'wa-4', color: '#ff4d4d' }
+    ];
+    buckets.forEach(function (b) {
+      var s = 64, c = document.createElement('canvas'); c.width = s; c.height = s;
+      var g = c.getContext('2d');
+      g.translate(s / 2, s / 2);
+      g.beginPath();
+      g.moveTo(0, -26); g.lineTo(11, -6); g.lineTo(4, -6); g.lineTo(4, 24); g.lineTo(-4, 24); g.lineTo(-4, -6); g.lineTo(-11, -6); g.closePath();
+      g.fillStyle = b.color; g.strokeStyle = 'rgba(10,25,40,0.8)'; g.lineWidth = 3; g.lineJoin = 'round';
+      g.stroke(); g.fill();
+      if (!map.hasImage(b.id)) map.addImage(b.id, g.getImageData(0, 0, s, s), { pixelRatio: 2 });
+    });
+  }
+
+  function windGeoJSON() {
+    var feats = [];
+    if (state.windSpd > 0) {
+      var stepLon = 0.0024, stepLat = 0.0019, row = 0;
+      for (var lat = WIND_BOX[1]; lat <= WIND_BOX[3]; lat += stepLat, row++) {
+        for (var lon = WIND_BOX[0] + (row % 2 ? stepLon / 2 : 0); lon <= WIND_BOX[2]; lon += stepLon) {
+          feats.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: {} });
+        }
+      }
+    }
+    var b = state.windSpd < 6 ? 0 : state.windSpd < 12 ? 1 : state.windSpd < 18 ? 2 : state.windSpd < 24 ? 3 : 4;
+    feats.forEach(function (f) {
+      f.properties.rot = (state.windDir + 180) % 360;
+      f.properties.img = 'wa-' + b;
+      f.properties.size = 0.55 + Math.min(state.windSpd, 30) / 30 * 0.6;
+    });
+    return { type: 'FeatureCollection', features: feats };
+  }
+
+  function measureGeoJSON() {
+    var pts = state.measurePts, feats = [];
+    if (pts.length > 1) feats.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: pts }, properties: {} });
+    pts.forEach(function (p) { feats.push({ type: 'Feature', geometry: { type: 'Point', coordinates: p }, properties: {} }); });
+    return { type: 'FeatureCollection', features: feats };
+  }
+
+  function addCustomLayers() {
+    var style = map.getStyle();
+    var vecSource = style.sources.openmaptiles ? 'openmaptiles' : Object.keys(style.sources).filter(function (k) { return style.sources[k].type === 'vector'; })[0];
+
+    // Remember the base style's own layers so we can toggle them
+    style.layers.forEach(function (l) {
+      if (l.type === 'symbol') baseLayers.symbols.push(l.id);
+      else if (l.type === 'fill-extrusion') baseLayers.extrusions.push(l.id);
+      else baseLayers.other.push(l.id);
+    });
+
+    map.addSource('esri', { type: 'raster', tiles: [SOURCES.esri], tileSize: 256, maxzoom: 19,
+      attribution: 'Imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community' });
+    map.addSource('usgs', { type: 'raster', tiles: [SOURCES.usgs], tileSize: 256, maxzoom: 16,
+      attribution: 'Aerial imagery: USGS The National Map' });
+    map.addSource('noaa', { type: 'raster', tiles: [SOURCES.noaa(state.depthUnits)], tileSize: 256, minzoom: 10, maxzoom: 18,
+      attribution: 'Chart data: NOAA Office of Coast Survey (ENC). Not for navigation.' });
+    map.addSource('dem', { type: 'raster-dem', tiles: [SOURCES.dem], tileSize: 256, maxzoom: 15, encoding: 'terrarium',
+      attribution: '<a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank" rel="noopener">Terrain: AWS Terrain Tiles</a>' });
+    map.addSource('dem-hs', { type: 'raster-dem', tiles: [SOURCES.dem], tileSize: 256, maxzoom: 15, encoding: 'terrarium' });
+    map.addSource('wind', { type: 'geojson', data: windGeoJSON() });
+    map.addSource('measure', { type: 'geojson', data: measureGeoJSON() });
+
+    var firstNonBg = style.layers.filter(function (l) { return l.type !== 'background'; })[0];
+    var beforeBase = firstNonBg ? firstNonBg.id : undefined;
+    var beforeSym = firstSymbolId();
+
+    // Imagery sits under everything; base map fills are hidden while it's on
+    map.addLayer({ id: 'img-esri', type: 'raster', source: 'esri', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 150 } }, beforeBase);
+    map.addLayer({ id: 'img-usgs', type: 'raster', source: 'usgs', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 150 } }, beforeBase);
+    map.addLayer({ id: 'hillshade', type: 'hillshade', source: 'dem-hs', layout: { visibility: 'none' },
+      paint: { 'hillshade-exaggeration': 0.35, 'hillshade-shadow-color': '#3b4d5e' } }, beforeSym);
+    map.addLayer({ id: 'noaa-chart', type: 'raster', source: 'noaa', layout: { visibility: 'none' },
+      paint: { 'raster-opacity': state.noaaOp, 'raster-fade-duration': 0 } }, beforeSym);
+
+    if (vecSource) {
+      // Docks and piers from OpenStreetMap (man_made=pier), drawn on top of imagery
+      map.addLayer({ id: 'docks-fill', type: 'fill', source: vecSource, 'source-layer': 'transportation',
+        filter: ['all', ['==', ['get', 'class'], 'pier'], ['in', ['geometry-type'], ['literal', ['Polygon', 'MultiPolygon']]]],
+        paint: { 'fill-color': '#f4ede1', 'fill-opacity': 0.85, 'fill-outline-color': '#8a7a62' } }, beforeSym);
+      map.addLayer({ id: 'docks-line', type: 'line', source: vecSource, 'source-layer': 'transportation', minzoom: 13,
+        filter: ['all', ['==', ['get', 'class'], 'pier'], ['in', ['geometry-type'], ['literal', ['LineString', 'MultiLineString']]]],
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#f4ede1', 'line-width': ['interpolate', ['linear'], ['zoom'], 14, 1, 17, 3, 19, 7] } }, beforeSym);
+
+      // 3D buildings, only if the base style doesn't already have them
+      if (!baseLayers.extrusions.length) {
+        map.addLayer({ id: 'csc-buildings', type: 'fill-extrusion', source: vecSource, 'source-layer': 'building', minzoom: 14,
+          paint: {
+            'fill-extrusion-color': '#d9d2c5',
+            'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 6],
+            'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+            'fill-extrusion-opacity': 0.9
+          } });
+        baseLayers.extrusions.push('csc-buildings');
+      }
+    }
+
+    makeArrowImages();
+    map.addLayer({ id: 'wind-arrows', type: 'symbol', source: 'wind', minzoom: 13,
+      layout: {
+        'icon-image': ['get', 'img'], 'icon-rotate': ['get', 'rot'], 'icon-size': ['get', 'size'],
+        'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true
+      },
+      paint: { 'icon-opacity': 0.82 } });
+
+    map.addLayer({ id: 'measure-line', type: 'line', source: 'measure', filter: ['==', ['geometry-type'], 'LineString'],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#e8a317', 'line-width': 3, 'line-dasharray': [2, 1.2] } });
+    map.addLayer({ id: 'measure-pts', type: 'circle', source: 'measure', filter: ['==', ['geometry-type'], 'Point'],
+      paint: { 'circle-radius': 5, 'circle-color': '#ffffff', 'circle-stroke-color': '#e8a317', 'circle-stroke-width': 2.5 } });
+
+    // Soft sky and haze for low-angle views
+    if (typeof map.setSky === 'function') {
+      try {
+        map.setSky({ 'sky-color': '#9cc3e6', 'horizon-color': '#e4eef6', 'fog-color': '#e4eef6',
+          'sky-horizon-blend': 0.5, 'horizon-fog-blend': 0.6, 'fog-ground-blend': 0.85, 'atmosphere-blend': 0.6 });
+      } catch (e) { /* older renderer */ }
+    }
+  }
+
+  function setVis(id, on) { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); }
+
+  function applyBase() {
+    var imagery = state.base !== 'chart';
+    setVis('img-esri', state.base === 'sat');
+    setVis('img-usgs', state.base === 'usgs');
+    // Base map fills and lines: hidden under imagery
+    baseLayers.other.forEach(function (id) { setVis(id, !imagery); });
+    setVis('hillshade', !imagery);
+    if (map.getLayer('docks-line')) {
+      map.setPaintProperty('docks-line', 'line-color', imagery ? '#fff4dc' : '#a08e72');
+      map.setPaintProperty('docks-line', 'line-opacity', imagery ? 0.8 : 1);
+    }
+    if (map.getLayer('docks-fill')) map.setPaintProperty('docks-fill', 'fill-opacity', imagery ? 0.55 : 0.9);
+    document.body.classList.toggle('mode-chart', !imagery);
+    document.querySelectorAll('#basemap button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.base === state.base)); });
+  }
+
+  function applyTerrain() {
+    try { map.setTerrain(state.terrain ? { source: 'dem', exaggeration: state.exag } : null); } catch (e) { console.warn(e); }
+  }
+
+  function applyOverlays() {
+    baseLayers.extrusions.forEach(function (id) { setVis(id, state.buildings); });
+    baseLayers.symbols.forEach(function (id) { setVis(id, state.labels); });
+    setVis('docks-line', state.docks); setVis('docks-fill', state.docks);
+    setVis('noaa-chart', state.noaa);
+    if (map.getLayer('noaa-chart')) map.setPaintProperty('noaa-chart', 'raster-opacity', state.noaaOp);
+    setVis('wind-arrows', state.wind);
+    Object.keys(markers).forEach(function (id) { markers[id].getElement().style.display = state.pins ? '' : 'none'; });
+  }
+
+  function updateWind() {
+    var src = map.getSource && map.getSource('wind');
+    if (src) src.setData(windGeoJSON());
+    var d = state.windDir, s = state.windSpd;
+    $('wind-read').textContent = d + '° · ' + s + ' kt';
+    $('wind-name').textContent = s === 0 ? 'Calm' : 'From the ' + compass(d);
+    $('dir-val').textContent = d + '°';
+    $('spd-val').textContent = s + ' kt';
+    $('dialarrow').setAttribute('transform', 'rotate(' + d + ' 50 50)');
+  }
+
+  /* =========================================================================
+     Pins
+     ========================================================================= */
+
+  function statusText(p) {
+    if (p.status === 'club') return { cls: 'club', t: 'Position checked by the club' };
+    if (p.status === 'osm') return { cls: 'osm', t: 'Position from OpenStreetMap' };
+    return { cls: 'approx', t: 'Approximate position, not yet checked' };
+  }
+
+  function popupHTML(p) {
+    var c = CATS[p.cat] || CATS.landmark, st = statusText(p);
+    var src = (p.src || []).map(function (s) {
+      return s.u ? '<a href="' + esc(s.u) + '" target="_blank" rel="noopener">' + esc(s.t) + '</a>' : esc(s.t);
+    }).join(' · ');
+    return '<div class="pop"><div class="cat" style="color:' + c.color + '">' + esc(c.label) + '</div>' +
+      '<h4>' + esc(p.name) + '</h4>' +
+      (p.desc ? '<p>' + esc(p.desc) + '</p>' : '') +
+      '<div class="pos ' + st.cls + '">' + esc(st.t) + '</div>' +
+      '<div class="coords">' + esc(fmtLngLat(p.lngLat)) + '</div>' +
+      (src ? '<div class="src">Source: ' + src + '</div>' : '') + '</div>';
+  }
+
+  var popup = new maplibregl.Popup({ offset: 22, maxWidth: '300px', closeButton: true });
+
+  function openPlace(p, fly) {
+    if (fly) map.flyTo({ center: p.lngLat, zoom: Math.max(map.getZoom(), p.cat === 'label' ? 15.8 : 17.2), pitch: 60, duration: 1800, essential: true });
+    popup.setLngLat(p.lngLat).setHTML(popupHTML(p)).addTo(map);
+    if (EDIT) selectPlace(p.id);
+  }
+
+  function pinElement(p) {
+    var c = CATS[p.cat] || CATS.landmark, el = document.createElement('div');
+    if (p.cat === 'label') {
+      el.className = 'wlabel'; el.textContent = p.name;
+    } else {
+      el.className = 'pin' + (p.status === 'approx' ? ' approx' : '');
+      el.innerHTML = '<div class="head" style="background:' + c.color + '"><span>' + esc(c.glyph) + '</span></div><div class="lbl">' + esc(p.name) + '</div>';
+    }
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-label', p.name);
+    el.tabIndex = 0;
+    el.addEventListener('click', function (ev) { ev.stopPropagation(); openPlace(findPlace(p.id), false); });
+    el.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') openPlace(findPlace(p.id), false); });
+    return el;
+  }
+
+  function findPlace(id) { for (var i = 0; i < places.length; i++) if (places[i].id === id) return places[i]; return null; }
+
+  function renderMarker(p) {
+    if (markers[p.id]) markers[p.id].remove();
+    var m = new maplibregl.Marker({ element: pinElement(p), anchor: p.cat === 'label' ? 'center' : 'bottom', draggable: EDIT })
+      .setLngLat(p.lngLat).addTo(map);
+    if (EDIT) {
+      m.on('dragend', function () {
+        var ll = m.getLngLat();
+        p.lngLat = [+ll.lng.toFixed(6), +ll.lat.toFixed(6)];
+        p.verified = true; p.status = 'club';
+        renderMarker(p); persistEdits(); renderPlaceList(); selectPlace(p.id);
+        toast(p.name + ' moved and marked as checked');
+      });
+    }
+    m.getElement().style.display = state.pins ? '' : 'none';
+    markers[p.id] = m;
+  }
+
+  function renderAllMarkers() {
+    Object.keys(markers).forEach(function (id) { markers[id].remove(); });
+    markers = {};
+    places.forEach(renderMarker);
+  }
+
+  function renderPlaceList() {
+    var ul = $('placelist'); ul.innerHTML = '';
+    places.forEach(function (p) {
+      var c = CATS[p.cat] || CATS.landmark, li = document.createElement('li'), b = document.createElement('button');
+      var st = p.status === 'club' ? '' : p.status === 'osm' ? 'OSM' : '≈';
+      b.innerHTML = '<span class="dot" style="background:' + c.color + '"></span><span>' + esc(p.name) + '</span><span class="st">' + st + '</span>';
+      b.addEventListener('click', function () { openPlace(p, true); });
+      li.appendChild(b); ul.appendChild(li);
+    });
+  }
+
+  // Move unchecked pins onto matching OpenStreetMap points once their tiles load
+  var snapTries = 0;
+  function snapToOSM() {
+    if (snapTries++ > 40) { map.off('idle', snapToOSM); return; }
+    var src = map.getStyle().sources.openmaptiles ? 'openmaptiles' : null;
+    if (!src) { map.off('idle', snapToOSM); return; }
+    var todo = places.filter(function (p) { return p.status === 'approx' && p.osm; });
+    if (!todo.length) { map.off('idle', snapToOSM); return; }
+    var feats = [];
+    try { feats = map.querySourceFeatures(src, { sourceLayer: 'poi' }); } catch (e) { return; }
+    var changed = false;
+    todo.forEach(function (p) {
+      var re = new RegExp(p.osm, 'i'), best = null, bestD = Infinity;
+      feats.forEach(function (f) {
+        if (!f.geometry || f.geometry.type !== 'Point') return;
+        var nm = (f.properties && (f.properties.name || f.properties['name:en'] || f.properties.name_en)) || '';
+        if (!re.test(nm)) return;
+        var d = dist(p.lngLat, f.geometry.coordinates);
+        if (d < 1500 && d < bestD) { best = f; bestD = d; }
+      });
+      if (best) {
+        p.lngLat = [+best.geometry.coordinates[0].toFixed(6), +best.geometry.coordinates[1].toFixed(6)];
+        p.status = 'osm'; changed = true;
+        renderMarker(p);
+      }
+    });
+    if (changed) { renderPlaceList(); if (EDIT) refreshExport(); }
+  }
+
+  /* =========================================================================
+     Edit mode
+     ========================================================================= */
+
+  function exportPlaces() {
+    return places.map(function (p) {
+      return { id: p.id, name: p.name, cat: p.cat, lngLat: p.lngLat, verified: !!p.verified, osm: p.osm || '', desc: p.desc || '', src: p.src || [] };
+    });
+  }
+  function refreshExport() { $('exportbox').value = JSON.stringify(exportPlaces(), null, 2); }
+  function persistEdits() { storeSet(exportPlaces()); refreshExport(); }
+
+  function selectPlace(id) {
+    state.selected = id;
+    var p = findPlace(id), f = $('editform');
+    if (!p) { f.hidden = true; return; }
+    f.hidden = false;
+    $('ef-name').value = p.name; $('ef-cat').value = p.cat; $('ef-desc').value = p.desc || ''; $('ef-verified').checked = !!p.verified;
+  }
+
+  function initEdit() {
+    var sel = $('ef-cat');
+    Object.keys(CATS).forEach(function (k) { var o = document.createElement('option'); o.value = k; o.textContent = CATS[k].label; sel.appendChild(o); });
+    function cur() { return findPlace(state.selected); }
+    $('ef-name').addEventListener('input', function () { var p = cur(); if (!p) return; p.name = this.value; renderMarker(p); renderPlaceList(); persistEdits(); });
+    $('ef-cat').addEventListener('change', function () { var p = cur(); if (!p) return; p.cat = this.value; renderMarker(p); renderPlaceList(); persistEdits(); });
+    $('ef-desc').addEventListener('input', function () { var p = cur(); if (!p) return; p.desc = this.value; persistEdits(); });
+    $('ef-verified').addEventListener('change', function () {
+      var p = cur(); if (!p) return; p.verified = this.checked; p.status = this.checked ? 'club' : 'approx';
+      renderMarker(p); renderPlaceList(); persistEdits();
+    });
+    $('ef-delete').addEventListener('click', function () {
+      var p = cur(); if (!p) return;
+      if (markers[p.id]) { markers[p.id].remove(); delete markers[p.id]; }
+      places = places.filter(function (x) { return x.id !== p.id; });
+      popup.remove(); $('editform').hidden = true; state.selected = null;
+      renderPlaceList(); persistEdits(); toast('Removed ' + p.name);
+    });
+    $('addplace').addEventListener('click', function () {
+      state.adding = !state.adding; this.setAttribute('aria-pressed', String(state.adding));
+      if (state.adding) { stopMeasure(); toast('Tap the map where the new place goes'); }
+      map.getCanvas().style.cursor = state.adding ? 'crosshair' : '';
+    });
+    $('resetedits').addEventListener('click', function () {
+      storeClear();
+      places = PLACES.map(function (p) { return Object.assign({}, p, { lngLat: p.lngLat.slice(), status: p.verified ? 'club' : 'approx' }); });
+      renderAllMarkers(); renderPlaceList(); refreshExport(); $('editform').hidden = true; popup.remove();
+      snapTries = 0; map.on('idle', snapToOSM);
+      toast('Edits discarded');
+    });
+    $('copyjson').addEventListener('click', function () {
+      var txt = $('exportbox').value;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(function () { toast('JSON copied'); }, function () { $('exportbox').select(); toast('Select all and copy the text'); });
+      } else { $('exportbox').select(); toast('Select all and copy the text'); }
+    });
+    refreshExport();
+  }
+
+  function addPlaceAt(ll) {
+    var id = 'place-' + Date.now().toString(36);
+    var p = { id: id, name: 'New place', cat: 'landmark', lngLat: [+ll.lng.toFixed(6), +ll.lat.toFixed(6)], verified: true, status: 'club', osm: '', desc: '', src: [] };
+    places.push(p); renderMarker(p); renderPlaceList(); persistEdits();
+    state.adding = false; $('addplace').setAttribute('aria-pressed', 'false'); map.getCanvas().style.cursor = '';
+    openPlace(p, false); $('ef-name').focus(); $('ef-name').select();
+  }
+
+  /* =========================================================================
+     Measure
+     ========================================================================= */
+
+  function updateMeasure() {
+    var src = map.getSource('measure'); if (src) src.setData(measureGeoJSON());
+    var pts = state.measurePts, total = 0;
+    for (var i = 1; i < pts.length; i++) total += dist(pts[i - 1], pts[i]);
+    var txt;
+    if (pts.length < 2) txt = pts.length ? 'Tap the next point' : 'Tap the map to start';
+    else {
+      var brg = bearing(pts[pts.length - 2], pts[pts.length - 1]);
+      txt = (total / 1852).toFixed(2) + ' nm · ' + Math.round(total) + ' m · last leg ' + Math.round(brg) + '°T (' + compass(brg) + ')';
+    }
+    $('measure-read').textContent = txt;
+  }
+  function startMeasure() {
+    state.measuring = true; $('measure').setAttribute('aria-pressed', 'true'); $('measurebox').classList.add('on');
+    map.getCanvas().style.cursor = 'crosshair'; updateMeasure();
+  }
+  function stopMeasure() {
+    state.measuring = false; $('measure').setAttribute('aria-pressed', 'false'); $('measurebox').classList.remove('on');
+    if (!state.adding) map.getCanvas().style.cursor = '';
+  }
+
+  /* =========================================================================
+     Camera
+     ========================================================================= */
+
+  function flyView(v) {
+    stopOrbit();
+    map.flyTo({ center: v.center, zoom: v.zoom, pitch: v.pitch, bearing: v.bearing, duration: 2600, essential: true });
+  }
+  var orbitRaf = null;
+  function orbitStep() {
+    if (!state.orbit) return;
+    map.setBearing((map.getBearing() + 0.09) % 360);
+    orbitRaf = requestAnimationFrame(orbitStep);
+  }
+  function startOrbit() {
+    state.orbit = true; $('orbit').setAttribute('aria-pressed', 'true'); $('orbit').textContent = 'Stop orbit';
+    if (map.getPitch() < 45) map.easeTo({ pitch: 60, duration: 800 });
+    orbitRaf = requestAnimationFrame(orbitStep);
+  }
+  function stopOrbit() {
+    if (!state.orbit) return;
+    state.orbit = false; cancelAnimationFrame(orbitRaf);
+    $('orbit').setAttribute('aria-pressed', 'false'); $('orbit').textContent = 'Orbit the basin';
+  }
+
+  /* =========================================================================
+     Panel wiring
+     ========================================================================= */
+
+  function initPanel() {
+    document.querySelectorAll('.tab').forEach(function (t) {
+      t.addEventListener('click', function () {
+        document.querySelectorAll('.tab').forEach(function (x) { x.setAttribute('aria-selected', String(x === t)); });
+        document.querySelectorAll('.pane').forEach(function (p) { p.hidden = p.dataset.pane !== t.dataset.pane; });
+      });
+    });
+    var panel = $('panel'), col = $('collapse');
+    if (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) { panel.classList.add('collapsed'); col.textContent = 'Show'; col.setAttribute('aria-expanded', 'false'); }
+    col.addEventListener('click', function () {
+      var c = panel.classList.toggle('collapsed');
+      col.textContent = c ? 'Show' : 'Hide'; col.setAttribute('aria-expanded', String(!c));
+    });
+
+    var vb = $('viewbtns');
+    VIEWS.forEach(function (v) {
+      var b = document.createElement('button'); b.className = 'chip';
+      b.innerHTML = esc(v.name) + '<small>' + esc(v.hint) + '</small>';
+      b.addEventListener('click', function () { flyView(v); });
+      vb.appendChild(b);
+    });
+    $('orbit').addEventListener('click', function () { state.orbit ? stopOrbit() : startOrbit(); });
+
+    document.querySelectorAll('#basemap button').forEach(function (b) {
+      b.addEventListener('click', function () { state.base = b.dataset.base; if (styleReady) applyBase(); });
+    });
+    function bindCheck(id, key, fn) {
+      $(id).addEventListener('change', function () { state[key] = this.checked; if (styleReady) fn(); });
+    }
+    bindCheck('opt-terrain', 'terrain', applyTerrain);
+    bindCheck('opt-buildings', 'buildings', applyOverlays);
+    bindCheck('opt-docks', 'docks', applyOverlays);
+    bindCheck('opt-pins', 'pins', applyOverlays);
+    bindCheck('opt-labels', 'labels', applyOverlays);
+    bindCheck('opt-wind', 'wind', applyOverlays);
+    bindCheck('opt-noaa', 'noaa', function () {
+      applyOverlays();
+      if (state.noaa) { noaaErrors = 0; $('noaa-status').textContent = 'Official NOAA electronic chart (ENC) data. Depths are relative to MLLW.'; }
+    });
+    document.querySelectorAll('#depthunits button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        state.depthUnits = b.dataset.units;
+        document.querySelectorAll('#depthunits button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+        var src = styleReady && map.getSource('noaa');
+        if (src && typeof src.setTiles === 'function') src.setTiles([SOURCES.noaa(state.depthUnits)]);
+        if (!state.noaa) { state.noaa = true; $('opt-noaa').checked = true; if (styleReady) applyOverlays(); }
+      });
+    });
+    $('opt-exag').addEventListener('input', function () {
+      state.exag = +this.value; $('exag-val').textContent = state.exag + '×'; if (styleReady && state.terrain) applyTerrain();
+    });
+    $('opt-noaa-op').addEventListener('input', function () {
+      state.noaaOp = +this.value; $('noaa-op-val').textContent = Math.round(state.noaaOp * 100) + '%'; if (styleReady) applyOverlays();
+    });
+    $('wind-dir').addEventListener('input', function () { state.windDir = +this.value; updateWind(); });
+    $('wind-spd').addEventListener('input', function () { state.windSpd = +this.value; updateWind(); });
+    $('wind-typical').addEventListener('click', function () {
+      state.windDir = 240; state.windSpd = 16; $('wind-dir').value = 240; $('wind-spd').value = 16; updateWind();
+      toast('Typical summer afternoon: WSW sea breeze');
+    });
+
+    $('measure').addEventListener('click', function () { state.measuring ? stopMeasure() : startMeasure(); });
+    $('measure-done').addEventListener('click', stopMeasure);
+    $('measure-clear').addEventListener('click', function () { state.measurePts = []; if (styleReady) updateMeasure(); });
+    $('copylink').addEventListener('click', function () {
+      var url = location.href;
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function () { toast('Link copied'); }, function () { toast(url, 5000); });
+      else toast(url, 5000);
+    });
+
+    if (WIND_FEED.url && typeof WIND_FEED.parse === 'function') {
+      var lb = $('wind-live'); lb.hidden = false;
+      lb.addEventListener('click', function () {
+        fetch(WIND_FEED.url, { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
+          var w = WIND_FEED.parse(j); if (!w) throw new Error('no data');
+          state.windDir = Math.round(w.dirDeg / 5) * 5 % 360; state.windSpd = Math.round(w.speedKt);
+          $('wind-dir').value = state.windDir; $('wind-spd').value = state.windSpd; updateWind();
+          $('wind-note').textContent = 'Forecast for ' + (w.time || 'this hour') + (w.gustKt ? ', gusts ' + Math.round(w.gustKt) + ' kt' : '') + '.';
+        }).catch(function () { toast('Couldn\'t load the forecast feed'); });
+      });
+    }
+  }
+
+  /* =========================================================================
+     Start
+     ========================================================================= */
+
+  var noaaErrors = 0;
+  map.on('error', function (e) {
+    var sid = e && (e.sourceId || (e.source && e.source.id));
+    if (sid === 'noaa') {
+      if (++noaaErrors === 3) $('noaa-status').textContent = 'The NOAA chart service isn\'t responding right now. It updates on Friday afternoons and can be briefly offline.';
+      return;
+    }
+    if (e && e.error) console.warn('[csc-map]', sid || '', e.error.message || e.error);
+  });
+
+  map.on('load', function () {
+    try {
+      addCustomLayers();
+    } catch (e) {
+      console.error('[csc-map] layer setup failed', e);
+      toast('Some map layers didn\'t load');
+    }
+    styleReady = true;
+    applyBase(); applyTerrain(); applyOverlays(); updateWind();
+    renderAllMarkers();
+    map.on('idle', snapToOSM);
+  });
+
+  map.on('mousemove', function (e) { $('readout').textContent = fmtLngLat([e.lngLat.lng, e.lngLat.lat]); });
+  map.on('click', function (e) {
+    if (EDIT && state.adding) { addPlaceAt(e.lngLat); return; }
+    if (state.measuring) {
+      state.measurePts.push([e.lngLat.lng, e.lngLat.lat]); updateMeasure(); return;
+    }
+    $('readout').textContent = fmtLngLat([e.lngLat.lng, e.lngLat.lat]);
+  });
+  ['mousedown', 'touchstart', 'wheel'].forEach(function (ev) { map.getCanvasContainer().addEventListener(ev, stopOrbit, { passive: true }); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { stopMeasure(); if (state.adding) $('addplace').click(); popup.remove(); }
+  });
+
+  initPanel();
+  updateWind();
+  renderPlaceList();
+  if (EDIT) initEdit();
+  $('readout').textContent = fmtLngLat(VIEWS[0].center);
+})();
+</script>
+</body>
+</html>
